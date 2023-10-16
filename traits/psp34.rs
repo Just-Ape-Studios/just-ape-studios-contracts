@@ -3,8 +3,8 @@ use ink::{
     prelude::vec::Vec,
 };
 
-pub type Id = u128;
-pub type Balance = u32;
+use crate::types::{Id, Balance};
+
 
 #[derive(scale::Encode, scale::Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
@@ -57,7 +57,7 @@ pub trait PSP34 {
     ///
     /// Returns `NotApproved` error if caller is not owner of `id`.
     #[ink(message)]
-    fn approve(&self, operator: AccountId, id: Option<Id>, approved: bool) -> Result<(), PSP34Error>;
+    fn approve(&mut self, operator: AccountId, id: Option<Id>, approved: bool) -> Result<(), PSP34Error>;
 
     /// Transfer approved or owned token from caller.
     ///
@@ -71,7 +71,7 @@ pub trait PSP34 {
     ///
     /// Returns `SafeTransferCheckFailed` error if `to` doesn't accept transfer.
     #[ink(message)]
-    fn transfer(&self, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error>;
+    fn transfer(&mut self, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error>;
 
     /// Returns the current total supply of the NFT.
     #[ink(message)]
