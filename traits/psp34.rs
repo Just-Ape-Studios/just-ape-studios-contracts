@@ -3,8 +3,8 @@ use ink::{
     prelude::vec::Vec,
 };
 
-pub type Id = u128;
-pub type Balance = u32;
+use crate::types::{Id, Balance};
+
 
 #[derive(scale::Encode, scale::Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
