@@ -22,7 +22,9 @@ and then implementing what's missing on top of it.
    don't account for that, e.g. `balance_of` is set to return an
    `u32`, which could end up causin' an integer overflow if the same
    owner has a biiig chunk of the supply. So just be aware of that <3
-2. No built-in extra stuff. If you wanna go custom, like charge for
+2. There's no spec of whether the allowances of a token should be cleared
+   on a transfer or not. On this impl they are cleared.
+3. No built-in extra stuff. If you wanna go custom, like charge for
    each mint, mint based on an allow-list, check only the contract
    owner can call transfer, and so on; you gotta do it yourself... or
    send a gig my way ((ΦωΦ)).
