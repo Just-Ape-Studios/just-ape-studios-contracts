@@ -6,7 +6,7 @@ mod psp34 {
     use ink::storage::Mapping;
 
     use crate::traits::{PSP34Error, PSP34};
-    use crate::types::{Id, AccountId};
+    use crate::types::Id;
 
     /// Event emitted when a token transfer occurs.
     ///
@@ -80,15 +80,10 @@ mod psp34 {
         /// It relies on the fact that a minted token will always have
         /// an owner, so if it has one, then it exists
         fn exists(&self, id: &Id) -> bool;
-        
+
         fn int_owner_of(&self, id: &Id) -> Option<AccountId>;
 
-        fn int_allowance(
-            &self,
-            owner: &AccountId,
-            operator: &AccountId,
-            id: Option<&Id>,
-        ) -> bool;
+        fn int_allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool;
 
         fn owner_or_approved(&self, account: &AccountId, token: &Id) -> bool;
 
@@ -97,6 +92,20 @@ mod psp34 {
         fn add_token_to(&mut self, account: &AccountId, token: &Id) -> Result<(), PSP34Error>;
 
         fn remove_token_allowances(&mut self, account: &AccountId, token: &Id);
+
+        fn add_allowance_operator(
+            &mut self,
+            owner: &AccountId,
+            operator: &AccountId,
+            token: &Option<Id>,
+        );
+
+        fn remove_allowance_operator(
+            &mut self,
+            owner: &AccountId,
+            operator: &AccountId,
+            token: &Option<Id>,
+        );
     }
 
     impl Internal for Contract {
@@ -112,12 +121,7 @@ mod psp34 {
             self.tokens_owner.get(id)
         }
 
-        fn int_allowance(
-            &self,
-            owner: &AccountId,
-            operator: &AccountId,
-            id: Option<&Id>,
-        ) -> bool {
+        fn int_allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool {
             if let Some(allowances) = self.allowances.get((&owner, id)) {
                 allowances.contains(&operator)
             } else {
@@ -188,6 +192,39 @@ mod psp34 {
         fn remove_token_allowances(&mut self, account: &AccountId, token: &Id) {
             self.allowances.remove((account, Some(token)));
         }
+
+        fn add_allowance_operator(
+            &mut self,
+            owner: &AccountId,
+            operator: &AccountId,
+            token: &Option<Id>,
+        ) {
+            if let Some(allowance) = &mut self.allowances.get((owner, &token)) {
+                if allowance.contains(&operator) {
+                    return;
+                }
+
+                allowance.push(*operator);
+                self.allowances.insert((owner, &token), allowance);
+            } else {
+                self.allowances.insert((owner, &token), &vec![*operator]);
+            }
+        }
+
+        fn remove_allowance_operator(
+            &mut self,
+            owner: &AccountId,
+            operator: &AccountId,
+            token: &Option<Id>,
+        ) {
+            if let Some(allowance) = &mut self.allowances.get((owner, &token)) {
+                if let Some(index) = allowance.iter().position(|x| x == operator) {
+                    allowance.remove(index);
+                }
+
+                self.allowances.insert((owner, &token), allowance);
+            }
+        }
     }
 
     impl PSP34 for Contract {
@@ -196,7 +233,7 @@ mod psp34 {
             // TODO
             Id::U8(0)
         }
-        
+
         #[ink(message)]
         fn total_supply(&self) -> Balance {
             Balance::from(self.total_supply)
@@ -219,10 +256,55 @@ mod psp34 {
         fn allowance(&self, owner: AccountId, operator: AccountId, id: Option<Id>) -> bool {
             self.int_allowance(&owner, &operator, id.as_ref())
         }
-        
+
         #[ink(message)]
-        fn approve(&mut self, operator: AccountId, id: Option<Id>, approved: bool) -> Result<(), PSP34Error> {
-            // TODO
+        fn approve(
+            &mut self,
+            operator: AccountId,
+            id: Option<Id>,
+            approved: bool,
+        ) -> Result<(), PSP34Error> {
+            let caller = self.env().caller();
+
+            // there are two cases to consider here:
+            //
+            //   1. if `id` is `None`, then the caller is granting access
+            //      to all of its own tokens.
+            //   2. if `id` is Some, then the caller may or may not be the
+            //      owner of the token, thus is granting access to a token
+            //      that may not be theirs.
+            //
+            //  given that the owner is part of the key in allowances, it's
+            //  important to make sure we reference the owner for each case.
+            let mut owner = caller;
+
+            if let Some(token) = &id {
+                owner = self
+                    .int_owner_of(&token)
+                    .ok_or(PSP34Error::TokenNotExists)?;
+
+                if approved && owner == operator {
+                    return Err(PSP34Error::SelfApprove);
+                }
+
+                if owner != caller && !self.int_allowance(&owner, &caller, Some(&token)) {
+                    return Err(PSP34Error::NotApproved);
+                }
+            }
+
+            if approved {
+                self.add_allowance_operator(&owner, &operator, &id);
+            } else {
+                self.remove_allowance_operator(&owner, &operator, &id);
+            }
+
+            self.env().emit_event(Approval {
+                owner: caller, // `caller` isn't necessarily the owner but openbrush does
+                // this too, I assume it's just bad naming
+                id,
+                approved,
+            });
+
             Ok(())
         }
 
@@ -238,7 +320,7 @@ mod psp34 {
         ///
         /// Returns `SafeTransferCheckFailed` error if `to` doesn't accept transfer.
         #[ink(message)]
-        fn transfer(&mut self, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error> {
+        fn transfer(&mut self, to: AccountId, id: Id, _data: Vec<u8>) -> Result<(), PSP34Error> {
             let from = self.env().caller();
 
             // check that the token exists

@@ -24,7 +24,10 @@ and then implementing what's missing on top of it.
    owner has a biiig chunk of the supply. So just be aware of that <3
 2. There's no spec of whether the allowances of a token should be cleared
    on a transfer or not. On this impl they are cleared.
-3. No built-in extra stuff. If you wanna go custom, like charge for
+3. Tf is the `data` field in `transfer()` for you may ask? Nobody knows,
+   openbrush's impl doesn't use it and neither do I, it's there for ABI
+   compatibility.
+4. No built-in extra stuff. If you wanna go custom, like charge for
    each mint, mint based on an allow-list, check only the contract
    owner can call transfer, and so on; you gotta do it yourself... or
    send a gig my way ((ΦωΦ)).
