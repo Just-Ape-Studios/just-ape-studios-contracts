@@ -1,10 +1,7 @@
 #[ink::contract]
 mod psp34 {
-    use alloc::slice::Concat;
-    use ink::reflect::ContractConstructorDecoder;
     use ink::storage::Mapping;
 
-    use crate::traits::extensions::psp34_enumerable::PSP34Enumerable;
     use crate::traits::extensions::psp34_metadata::PSP34Metadata;
     use crate::traits::{PSP34Error, PSP34};
     use crate::types::Id;
@@ -73,9 +70,16 @@ mod psp34 {
         pub total_supply: Balance,
     }
 
+    #[derive(Debug)]
+    #[ink::storage_item]
+    pub struct PSP34MetadataStorage {
+        pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>,
+    }
+
     #[ink(storage)]
     pub struct Contract {
         pub psp34: PSP34Storage,
+        pub psp34_metadata: PSP34MetadataStorage,
     }
 
     trait Internal {
@@ -377,25 +381,14 @@ mod psp34 {
             Ok(())
         }
     }
-    
+
     impl PSP34Metadata for Contract {
-        
-    }
-
-    impl PSP34Enumerable for Contract {
-        /// Returns a token `Id` owned by `owner` at a given `index` of its token list.
-        /// Use along with `balance_of` to enumerate all of `owner`'s tokens.
+        /// Returns the attribute of `id` for the given `key`.
+        ///
+        /// If `id` is a collection id of the token, it returns attributes for collection.
         #[ink(message)]
-        fn owners_token_by_index(&self, owner: AccountId, index: u128) {
-            // self.tokens_owner.g
-        }
-
-        /// Returns a token `Id` at a given `index` of all the tokens stored by the contract.
-        /// Use along with `total_supply` to enumerate all tokens.
-        #[ink(message)]
-        fn token_by_index(&self, index: u128) -> Option<Id> {
-            // TODO
-            None
+        fn get_attribute(&self, id: Id, key: Vec<u8>) -> Option<Vec<u8>> {
+            self.psp34_metadata.attributes.get((id, key))
         }
     }
 
@@ -408,6 +401,9 @@ mod psp34 {
                     tokens_per_owner: Mapping::new(),
                     allowances: Mapping::new(),
                     total_supply: 0,
+                },
+                psp34_metadata: PSP34MetadataStorage {
+                    attributes: Mapping::new(),
                 },
             }
         }
