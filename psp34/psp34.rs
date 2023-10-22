@@ -1,10 +1,11 @@
-#[ink::storage_item]
-pub struct PSP34Storage {}
-
 #[ink::contract]
 mod psp34 {
+    use alloc::slice::Concat;
+    use ink::reflect::ContractConstructorDecoder;
     use ink::storage::Mapping;
 
+    use crate::traits::extensions::psp34_enumerable::PSP34Enumerable;
+    use crate::traits::extensions::psp34_metadata::PSP34Metadata;
     use crate::traits::{PSP34Error, PSP34};
     use crate::types::Id;
 
@@ -55,13 +56,11 @@ mod psp34 {
         data: Vec<u8>,
     }
 
-    #[ink(storage)]
-    pub struct Contract {
+    #[derive(Debug)]
+    #[ink::storage_item]
+    pub struct PSP34Storage {
         /// Mapping from token to owner
         pub tokens_owner: Mapping<Id, AccountId>,
-
-        /// Mapping from token to approvals users
-        pub token_approvals: Mapping<Id, AccountId>,
 
         /// Mapping from owner to number of owned tokens
         pub tokens_per_owner: Mapping<AccountId, u32>,
@@ -72,6 +71,11 @@ mod psp34 {
 
         /// Total supply of tokens
         pub total_supply: Balance,
+    }
+
+    #[ink(storage)]
+    pub struct Contract {
+        pub psp34: PSP34Storage,
     }
 
     trait Internal {
@@ -114,15 +118,15 @@ mod psp34 {
         /// It relies on the fact that a minted token will always have
         /// an owner, so if it has one, then it exists
         fn exists(&self, id: &Id) -> bool {
-            self.tokens_owner.contains(id)
+            self.psp34.tokens_owner.contains(id)
         }
 
         fn int_owner_of(&self, id: &Id) -> Option<AccountId> {
-            self.tokens_owner.get(id)
+            self.psp34.tokens_owner.get(id)
         }
 
         fn int_allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool {
-            if let Some(allowances) = self.allowances.get((&owner, id)) {
+            if let Some(allowances) = self.psp34.allowances.get((&owner, id)) {
                 allowances.contains(&operator)
             } else {
                 false
@@ -153,12 +157,17 @@ mod psp34 {
                 ));
             }
 
-            let count = self.tokens_per_owner.get(account).map(|t| t - 1).ok_or(
-                PSP34Error::SafeTransferCheckFailed("token should exist".into()),
-            )?;
+            let count = self
+                .psp34
+                .tokens_per_owner
+                .get(account)
+                .map(|t| t - 1)
+                .ok_or(PSP34Error::SafeTransferCheckFailed(
+                    "token should exist".into(),
+                ))?;
 
-            self.tokens_per_owner.insert(account, &count);
-            self.tokens_owner.remove(token);
+            self.psp34.tokens_per_owner.insert(account, &count);
+            self.psp34.tokens_owner.remove(token);
 
             Ok(())
         }
@@ -178,19 +187,20 @@ mod psp34 {
             }
 
             let count = self
+                .psp34
                 .tokens_per_owner
                 .get(account)
                 .map(|t| t + 1)
                 .unwrap_or(1);
 
-            self.tokens_per_owner.insert(account, &count);
-            self.tokens_owner.insert(token, account);
+            self.psp34.tokens_per_owner.insert(account, &count);
+            self.psp34.tokens_owner.insert(token, account);
 
             Ok(())
         }
 
         fn remove_token_allowances(&mut self, account: &AccountId, token: &Id) {
-            self.allowances.remove((account, Some(token)));
+            self.psp34.allowances.remove((account, Some(token)));
         }
 
         fn add_allowance_operator(
@@ -199,15 +209,17 @@ mod psp34 {
             operator: &AccountId,
             token: &Option<Id>,
         ) {
-            if let Some(allowance) = &mut self.allowances.get((owner, &token)) {
+            if let Some(allowance) = &mut self.psp34.allowances.get((owner, &token)) {
                 if allowance.contains(&operator) {
                     return;
                 }
 
                 allowance.push(*operator);
-                self.allowances.insert((owner, &token), allowance);
+                self.psp34.allowances.insert((owner, &token), allowance);
             } else {
-                self.allowances.insert((owner, &token), &vec![*operator]);
+                self.psp34
+                    .allowances
+                    .insert((owner, &token), &vec![*operator]);
             }
         }
 
@@ -217,12 +229,12 @@ mod psp34 {
             operator: &AccountId,
             token: &Option<Id>,
         ) {
-            if let Some(allowance) = &mut self.allowances.get((owner, &token)) {
+            if let Some(allowance) = &mut self.psp34.allowances.get((owner, &token)) {
                 if let Some(index) = allowance.iter().position(|x| x == operator) {
                     allowance.remove(index);
                 }
 
-                self.allowances.insert((owner, &token), allowance);
+                self.psp34.allowances.insert((owner, &token), allowance);
             }
         }
     }
@@ -236,12 +248,12 @@ mod psp34 {
 
         #[ink(message)]
         fn total_supply(&self) -> Balance {
-            Balance::from(self.total_supply)
+            Balance::from(self.psp34.total_supply)
         }
 
         #[ink(message)]
         fn balance_of(&self, owner: AccountId) -> u32 {
-            self.tokens_per_owner.get(owner).unwrap_or(0u32)
+            self.psp34.tokens_per_owner.get(owner).unwrap_or(0u32)
         }
 
         #[ink(message)]
@@ -257,6 +269,16 @@ mod psp34 {
             self.int_allowance(&owner, &operator, id.as_ref())
         }
 
+        /// Approves `operator` to withdraw  the `id` token from the caller's account.
+        /// If `id` is `None` approves or disapproves the operator for all tokens of the caller.
+        ///
+        /// An `Approval` event is emitted.
+        ///
+        /// # Errors
+        ///
+        /// Returns `SelfApprove` error if it is self approve.
+        ///
+        /// Returns `NotApproved` error if caller is not owner of `id`.
         #[ink(message)]
         fn approve(
             &mut self,
@@ -299,8 +321,9 @@ mod psp34 {
             }
 
             self.env().emit_event(Approval {
-                owner: caller, // `caller` isn't necessarily the owner but openbrush does
+                // `caller` isn't necessarily the owner but openbrush does
                 // this too, I assume it's just bad naming
+                owner: caller,
                 id,
                 approved,
             });
@@ -354,16 +377,38 @@ mod psp34 {
             Ok(())
         }
     }
+    
+    impl PSP34Metadata for Contract {
+        
+    }
+
+    impl PSP34Enumerable for Contract {
+        /// Returns a token `Id` owned by `owner` at a given `index` of its token list.
+        /// Use along with `balance_of` to enumerate all of `owner`'s tokens.
+        #[ink(message)]
+        fn owners_token_by_index(&self, owner: AccountId, index: u128) {
+            // self.tokens_owner.g
+        }
+
+        /// Returns a token `Id` at a given `index` of all the tokens stored by the contract.
+        /// Use along with `total_supply` to enumerate all tokens.
+        #[ink(message)]
+        fn token_by_index(&self, index: u128) -> Option<Id> {
+            // TODO
+            None
+        }
+    }
 
     impl Contract {
         #[ink(constructor)]
         pub fn new() -> Self {
             Self {
-                tokens_owner: Mapping::new(),
-                token_approvals: Mapping::new(),
-                tokens_per_owner: Mapping::new(),
-                allowances: Mapping::new(),
-                total_supply: 0,
+                psp34: PSP34Storage {
+                    tokens_owner: Mapping::new(),
+                    tokens_per_owner: Mapping::new(),
+                    allowances: Mapping::new(),
+                    total_supply: 0,
+                },
             }
         }
     }
