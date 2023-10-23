@@ -1,15 +1,27 @@
-## Abstract
+## Summary
+**These smart contracts were written in plain ink!.**
 
-Repo stores an example of a compliant implementation of the PSP34
-community standard [1] in plain ink. This is mostly inspired by the work
-of openbrush team [2] and the focus was to remove the dependency on
-their internal libraries in favour of ink's alternatives. Shout-out to
+Why use these smart contracts?
+- Smart contracts undergo rounds of security audits
+- Standards can help simplify development
+
+Token Standards available:
+- **PSP34** - Non-Fungible Token (*ERC721 equivalent*) with extensions
+
+### PSP-34 Non-Fungible Token Standard in Plain ink!
+* PSP-34 OpenBrush Implementation [OpenBrush|https://github.com/Brushfam/openbrush-contracts/tree/main/contracts/src/token/psp34]
+
+This compliant implementation of the PSP34
+community standard [1] is mostly inspired by the work
+of openbrush team [2].
+The focus was to remove the dependency on
+their internal libraries in favor of ink's alternatives. Shout-out to
 the paritytech peeps too for their amazing up-to-date examples
 repository. [3]
 
-This ain't a library that you can import into your code and
-extend. You better off cloning it, checking which extensions you need
-and then implementing what's missing on top of it.
+**Currently, the smart contract does not act as a library and cannot be extended.**
+For easier use, please clone the repo, check which extensions you need
+and then implement what's missing on top of it.
 
 - [1] https://github.com/w3f/PSPs/blob/master/PSPs/psp-34.md
 - [2] https://github.com/Brushfam/openbrush-contracts
@@ -27,7 +39,4 @@ and then implementing what's missing on top of it.
 3. Tf is the `data` field in `transfer()` for you may ask? Nobody knows,
    openbrush's impl doesn't use it and neither do I, it's there for ABI
    compatibility.
-4. No built-in extra stuff. If you wanna go custom, like charge for
-   each mint, mint based on an allow-list, check only the contract
-   owner can call transfer, and so on; you gotta do it yourself... or
-   send a gig my way ((ΦωΦ)).
+4. If you require custom features, such as charge per mint, allow-list based mints, validate contract owner permissions, and so on; you must implement these features.
