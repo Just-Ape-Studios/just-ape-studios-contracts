@@ -14,7 +14,7 @@ Token Standards available:
 This compliant implementation of the PSP34
 community standard [1] is mostly inspired by the work
 of openbrush team [2]. This implementation is similar to the [EIP-721](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md) for the Ethereum.
-The focus was to remove the dependency on
+The objective was to remove the dependency on
 their internal libraries in favor of ink's alternatives. Shout-out to
 the paritytech peeps too for their amazing up-to-date examples
 repository. [3]
