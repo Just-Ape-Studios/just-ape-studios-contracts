@@ -3,6 +3,7 @@ mod psp34 {
     use ink::storage::Mapping;
 
     use crate::traits::extensions::psp34_metadata::PSP34Metadata;
+    use crate::traits::extensions::psp34_mintable::PSP34Mintable;
     use crate::traits::{PSP34Error, PSP34};
     use crate::types::Id;
 
@@ -92,6 +93,8 @@ mod psp34 {
         fn int_owner_of(&self, id: &Id) -> Option<AccountId>;
 
         fn int_allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool;
+        
+        fn int_mint_to(&mut self, account: &AccountId, id: &Id) -> Result<(), PSP34Error>;
 
         fn owner_or_approved(&self, account: &AccountId, token: &Id) -> bool;
 
@@ -100,6 +103,8 @@ mod psp34 {
         fn add_token_to(&mut self, account: &AccountId, token: &Id) -> Result<(), PSP34Error>;
 
         fn remove_token_allowances(&mut self, account: &AccountId, token: &Id);
+
+        fn inc_qty_owner_tokens(&mut self, account: &AccountId) -> u32;
 
         fn add_allowance_operator(
             &mut self,
@@ -135,6 +140,17 @@ mod psp34 {
             } else {
                 false
             }
+        }
+
+        fn int_mint_to(&mut self, account: &AccountId, id: &Id) -> Result<(), PSP34Error> {
+            if let Some(_) = &self.psp34.tokens_owner.get(id) {
+                return Err(PSP34Error::TokenExists);
+            }
+            
+            self.inc_qty_owner_tokens(&account);
+            self.psp34.tokens_owner.insert(id, account);
+            
+            Ok(())
         }
 
         /// Verifies if an account either the owner of a token or if
@@ -190,6 +206,13 @@ mod psp34 {
                 ));
             }
 
+            self.inc_qty_owner_tokens(&account);
+            self.psp34.tokens_owner.insert(token, account);
+
+            Ok(())
+        }
+        
+        fn inc_qty_owner_tokens(&mut self, account: &AccountId) -> u32 {
             let count = self
                 .psp34
                 .tokens_per_owner
@@ -198,9 +221,7 @@ mod psp34 {
                 .unwrap_or(1);
 
             self.psp34.tokens_per_owner.insert(account, &count);
-            self.psp34.tokens_owner.insert(token, account);
-
-            Ok(())
+            count
         }
 
         fn remove_token_allowances(&mut self, account: &AccountId, token: &Id) {
@@ -389,6 +410,14 @@ mod psp34 {
         #[ink(message)]
         fn get_attribute(&self, id: Id, key: Vec<u8>) -> Option<Vec<u8>> {
             self.psp34_metadata.attributes.get((id, key))
+        }
+    }
+    
+    impl PSP34Mintable for Contract {
+        /// Mints a new token with `id`.
+        #[ink(message)]
+        fn mint(&mut self, account: AccountId, id: Id) -> Result<(), PSP34Error> {
+            self.int_mint_to(&account, &id)
         }
     }
 
