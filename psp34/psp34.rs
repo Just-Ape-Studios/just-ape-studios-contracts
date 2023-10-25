@@ -1,5 +1,6 @@
 #[ink::contract]
 mod psp34 {
+    use ink::prelude::{vec, vec::Vec};
     use ink::storage::Mapping;
 
     use crate::traits::extensions::psp34_metadata::PSP34Metadata;
@@ -202,7 +203,7 @@ mod psp34 {
 
             if *account == AccountId::from([0; 32]) {
                 return Err(PSP34Error::SafeTransferCheckFailed(
-                    "'to' account is zeroed".to_owned(),
+                    "'to' account is zeroed".into(),
                 ));
             }
 
@@ -379,7 +380,7 @@ mod psp34 {
             // check that the `to` account accepts transfers
             if to == AccountId::from([0; 32]) {
                 return Err(PSP34Error::SafeTransferCheckFailed(
-                    "'to' account is zeroed".to_owned(),
+                    "'to' account is zeroed".into(),
                 ));
             }
 

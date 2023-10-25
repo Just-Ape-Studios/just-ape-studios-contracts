@@ -1,4 +1,4 @@
-use ink::{prelude::vec::Vec, primitives::AccountId};
+use ink::{prelude::string::String, prelude::vec::Vec, primitives::AccountId};
 
 use crate::types::{Balance, Id};
 
