@@ -246,8 +246,8 @@ mod psp34 {
     impl PSP34 for Contract {
         #[ink(message)]
         fn collection_id(&self) -> Id {
-            // TODO
-            Id::U8(0)
+            let account_id = Self::env().account_id();
+            Id::Bytes(<_ as AsRef<[u8; 32]>>::as_ref(&account_id).to_vec())
         }
 
         #[ink(message)]
