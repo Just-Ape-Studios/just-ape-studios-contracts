@@ -1,10 +1,6 @@
-use ink::{
-    primitives::AccountId,
-    prelude::vec::Vec,
-};
+use ink::{prelude::string::String, prelude::vec::Vec, primitives::AccountId};
 
-use crate::types::{Id, Balance};
-
+use crate::types::{Balance, Id};
 
 #[derive(scale::Encode, scale::Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
@@ -57,7 +53,12 @@ pub trait PSP34 {
     ///
     /// Returns `NotApproved` error if caller is not owner of `id`.
     #[ink(message)]
-    fn approve(&mut self, operator: AccountId, id: Option<Id>, approved: bool) -> Result<(), PSP34Error>;
+    fn approve(
+        &mut self,
+        operator: AccountId,
+        id: Option<Id>,
+        approved: bool,
+    ) -> Result<(), PSP34Error>;
 
     /// Transfer approved or owned token from caller.
     ///
