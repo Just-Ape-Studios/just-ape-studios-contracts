@@ -93,7 +93,7 @@ mod psp34 {
         fn int_owner_of(&self, id: &Id) -> Option<AccountId>;
 
         fn int_allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool;
-        
+
         fn int_mint_to(&mut self, account: &AccountId, id: &Id) -> Result<(), PSP34Error>;
 
         fn owner_or_approved(&self, account: &AccountId, token: &Id) -> bool;
@@ -146,10 +146,10 @@ mod psp34 {
             if let Some(_) = &self.psp34.tokens_owner.get(id) {
                 return Err(PSP34Error::TokenExists);
             }
-            
+
             self.inc_qty_owner_tokens(&account);
             self.psp34.tokens_owner.insert(id, account);
-            
+
             Ok(())
         }
 
@@ -211,7 +211,7 @@ mod psp34 {
 
             Ok(())
         }
-        
+
         fn inc_qty_owner_tokens(&mut self, account: &AccountId) -> u32 {
             let count = self
                 .psp34
@@ -412,7 +412,7 @@ mod psp34 {
             self.psp34_metadata.attributes.get((id, key))
         }
     }
-    
+
     impl PSP34Mintable for Contract {
         /// Mints a new token with `id`.
         #[ink(message)]

@@ -1,4 +1,7 @@
-use crate::{types::{AccountId, Id}, traits::PSP34Error};
+use crate::{
+    traits::PSP34Error,
+    types::{AccountId, Id},
+};
 
 #[ink::trait_definition]
 pub trait PSP34Mintable {

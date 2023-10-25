@@ -6,8 +6,7 @@ pub trait PSP34Enumerable {
     /// Use along with `balance_of` to enumerate all of `owner`'s tokens.
     #[ink(message)]
     fn owners_token_by_index(&self, owner: AccountId, index: u128);
-    
-    
+
     /// Returns a token `Id` at a given `index` of all the tokens stored by the contract.
     /// Use along with `total_supply` to enumerate all tokens.
     #[ink(message)]

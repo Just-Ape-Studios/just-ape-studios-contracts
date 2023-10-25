@@ -1,5 +1,5 @@
-use ink::prelude::vec::Vec;
 use crate::types::Id;
+use ink::prelude::vec::Vec;
 
 #[ink::trait_definition]
 pub trait PSP34Metadata {
