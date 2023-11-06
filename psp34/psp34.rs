@@ -120,6 +120,14 @@ mod psp34 {
             operator: &AccountId,
             token: &Option<Id>,
         );
+
+        fn int_transfer_from(
+            &mut self,
+            from: &AccountId,
+            to: &AccountId,
+            id: &Id,
+            _data: Vec<u8>,
+        ) -> Result<(), PSP34Error>;
     }
 
     impl Internal for Contract {
@@ -263,6 +271,40 @@ mod psp34 {
                 self.psp34.allowances.insert((owner, &token), allowance);
             }
         }
+
+        /// Transfers a token with `id` from an account `from` into an account `to`.
+        /// note the data field is ignored, it's there to maintain the ABI signature.
+        fn int_transfer_from(
+            &mut self,
+            from: &AccountId,
+            to: &AccountId,
+            id: &Id,
+            _data: Vec<u8>,
+        ) -> Result<(), PSP34Error> {
+            // check that the token exists
+            if !self.exists(&id) {
+                return Err(PSP34Error::TokenNotExists);
+            }
+
+            // check that the `to` account accepts transfers
+            if *to == AccountId::from([0; 32]) {
+                return Err(PSP34Error::SafeTransferCheckFailed(
+                    "'to' account is zeroed".into(),
+                ));
+            }
+
+            // check that the account performing the transfer has the
+            // perms to do so
+            if !self.owner_or_approved(&from, &id) {
+                return Err(PSP34Error::NotApproved);
+            }
+
+            self.remove_token_allowances(&from, &id);
+            self.remove_token_from(&from, &id)?;
+            self.add_token_to(&to, &id)?;
+
+            Ok(())
+        }
     }
 
     impl PSP34 for Contract {
@@ -369,30 +411,9 @@ mod psp34 {
         ///
         /// Returns `SafeTransferCheckFailed` error if `to` doesn't accept transfer.
         #[ink(message)]
-        fn transfer(&mut self, to: AccountId, id: Id, _data: Vec<u8>) -> Result<(), PSP34Error> {
+        fn transfer(&mut self, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error> {
             let from = self.env().caller();
-
-            // check that the token exists
-            if !self.exists(&id) {
-                return Err(PSP34Error::TokenNotExists);
-            }
-
-            // check that the `to` account accepts transfers
-            if to == AccountId::from([0; 32]) {
-                return Err(PSP34Error::SafeTransferCheckFailed(
-                    "'to' account is zeroed".into(),
-                ));
-            }
-
-            // check that the account performing the transfer has the
-            // perms to do so
-            if !self.owner_or_approved(&from, &id) {
-                return Err(PSP34Error::NotApproved);
-            }
-
-            self.remove_token_allowances(&from, &id);
-            self.remove_token_from(&from, &id)?;
-            self.add_token_to(&to, &id)?;
+            self.int_transfer_from(&from, &to, &id, data)?;
 
             self.env().emit_event(Transfer {
                 from: Some(from),
