@@ -87,11 +87,11 @@ mod psp34 {
         /// an owner, so if it has one, then it exists
         fn exists(&self, id: &Id) -> bool;
 
-        fn int_owner_of(&self, id: &Id) -> Option<AccountId>;
+        fn owner_of(&self, id: &Id) -> Option<AccountId>;
 
-        fn int_allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool;
+        fn allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool;
 
-        fn int_mint_to(&mut self, account: &AccountId, id: &Id) -> Result<(), PSP34Error>;
+        fn mint_to(&mut self, account: &AccountId, id: &Id) -> Result<(), PSP34Error>;
 
         fn owner_or_approved(&self, account: &AccountId, token: &Id) -> bool;
 
@@ -117,14 +117,14 @@ mod psp34 {
             token: &Option<Id>,
         );
 
-        fn int_approve(
+        fn approve(
             &mut self,
             caller: &AccountId,
             id: &Option<Id>,
             approve: bool,
         ) -> Result<AccountId, PSP34Error>;
 
-        fn int_transfer_from(
+        fn transfer_from(
             &mut self,
             from: &AccountId,
             to: &AccountId,
@@ -142,11 +142,11 @@ mod psp34 {
             self.tokens_owner.contains(id)
         }
 
-        fn int_owner_of(&self, id: &Id) -> Option<AccountId> {
+        fn owner_of(&self, id: &Id) -> Option<AccountId> {
             self.tokens_owner.get(id)
         }
 
-        fn int_allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool {
+        fn allowance(&self, owner: &AccountId, operator: &AccountId, id: Option<&Id>) -> bool {
             if let Some(allowances) = self.allowances.get((&owner, id)) {
                 allowances.contains(&operator)
             } else {
@@ -154,7 +154,7 @@ mod psp34 {
             }
         }
 
-        fn int_mint_to(&mut self, account: &AccountId, id: &Id) -> Result<(), PSP34Error> {
+        fn mint_to(&mut self, account: &AccountId, id: &Id) -> Result<(), PSP34Error> {
             if let Some(_) = &self.tokens_owner.get(id) {
                 return Err(PSP34Error::TokenExists);
             }
@@ -169,14 +169,14 @@ mod psp34 {
         /// Verifies if an account either the owner of a token or if
         /// it's allowed to perform an action on it
         fn owner_or_approved(&self, account: &AccountId, token: &Id) -> bool {
-            let owner = self.int_owner_of(token);
+            let owner = self.owner_of(token);
 
             match owner {
                 Some(owner) => {
                     *account != AccountId::from([0x0; 32])
                         && (owner == *account
-                            || self.int_allowance(&owner, account, Some(token))
-                            || self.int_allowance(&owner, account, None))
+                            || self.allowance(&owner, account, Some(token))
+                            || self.allowance(&owner, account, None))
                 }
                 None => false,
             }
@@ -273,7 +273,7 @@ mod psp34 {
             }
         }
 
-        fn int_approve(
+        fn approve(
             &mut self,
             caller: &AccountId,
             id: &Option<Id>,
@@ -293,14 +293,14 @@ mod psp34 {
 
             if let Some(token) = &id {
                 owner = self
-                    .int_owner_of(&token)
+                    .owner_of(&token)
                     .ok_or(PSP34Error::TokenNotExists)?;
 
                 if approve && owner == *caller {
                     return Err(PSP34Error::SelfApprove);
                 }
 
-                if owner != *caller && !self.int_allowance(&owner, &caller, Some(&token)) {
+                if owner != *caller && !self.allowance(&owner, &caller, Some(&token)) {
                     return Err(PSP34Error::NotApproved);
                 }
             }
@@ -316,7 +316,7 @@ mod psp34 {
 
         /// Transfers a token with `id` from an account `from` into an account `to`.
         /// note the data field is ignored, it's there to maintain the ABI signature.
-        fn int_transfer_from(
+        fn transfer_from(
             &mut self,
             from: &AccountId,
             to: &AccountId,
@@ -368,7 +368,7 @@ mod psp34 {
 
         #[ink(message)]
         fn owner_of(&self, id: Id) -> Option<AccountId> {
-            self.psp34.int_owner_of(&id)
+            self.psp34.owner_of(&id)
         }
 
         /// Returns `true` if the operator is approved by the owner to
@@ -376,7 +376,7 @@ mod psp34 {
         /// the operator is approved to withdraw all owner's tokens.
         #[ink(message)]
         fn allowance(&self, owner: AccountId, operator: AccountId, id: Option<Id>) -> bool {
-            self.psp34.int_allowance(&owner, &operator, id.as_ref())
+            self.psp34.allowance(&owner, &operator, id.as_ref())
         }
 
         /// Approves `operator` to withdraw  the `id` token from the caller's account.
@@ -398,7 +398,7 @@ mod psp34 {
         ) -> Result<(), PSP34Error> {
             let caller = self.env().caller();
 
-            self.psp34.int_approve(&operator, &id, approved)?;
+            self.psp34.approve(&operator, &id, approved)?;
 
             self.env().emit_event(Approval {
                 // `caller` isn't necessarily the owner but openbrush does
@@ -425,7 +425,7 @@ mod psp34 {
         #[ink(message)]
         fn transfer(&mut self, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error> {
             let from = self.env().caller();
-            self.psp34.int_transfer_from(&from, &to, &id, data)?;
+            self.psp34.transfer_from(&from, &to, &id, data)?;
 
             self.env().emit_event(Transfer {
                 from: Some(from),
@@ -451,7 +451,7 @@ mod psp34 {
         /// Mints a new token with `id`.
         #[ink(message)]
         fn mint(&mut self, account: AccountId, id: Id) -> Result<(), PSP34Error> {
-            self.psp34.int_mint_to(&account, &id)
+            self.psp34.mint_to(&account, &id)
         }
     }
 
