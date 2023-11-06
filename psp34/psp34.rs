@@ -156,6 +156,7 @@ mod psp34 {
                 return Err(PSP34Error::TokenExists);
             }
 
+            self.psp34.total_supply += 1;
             self.inc_qty_owner_tokens(&account);
             self.psp34.tokens_owner.insert(id, account);
 
