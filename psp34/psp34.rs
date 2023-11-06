@@ -121,6 +121,13 @@ mod psp34 {
             token: &Option<Id>,
         );
 
+        fn int_approve(
+            &mut self,
+            caller: &AccountId,
+            id: &Option<Id>,
+            approve: bool,
+        ) -> Result<AccountId, PSP34Error>;
+
         fn int_transfer_from(
             &mut self,
             from: &AccountId,
@@ -273,6 +280,47 @@ mod psp34 {
             }
         }
 
+        fn int_approve(
+            &mut self,
+            caller: &AccountId,
+            id: &Option<Id>,
+            approve: bool,
+        ) -> Result<AccountId, PSP34Error> {
+            // there are two cases to consider here:
+            //
+            //   1. if `id` is `None`, then the caller is granting access
+            //      to all of its own tokens.
+            //   2. if `id` is Some, then the caller may or may not be the
+            //      owner of the token, thus is granting access to a token
+            //      that may not be theirs.
+            //
+            //  given that the owner is part of the key in allowances, it's
+            //  important to make sure we reference the owner for each case.
+            let mut owner = *caller;
+
+            if let Some(token) = &id {
+                owner = self
+                    .int_owner_of(&token)
+                    .ok_or(PSP34Error::TokenNotExists)?;
+
+                if approve && owner == *caller {
+                    return Err(PSP34Error::SelfApprove);
+                }
+
+                if owner != *caller && !self.int_allowance(&owner, &caller, Some(&token)) {
+                    return Err(PSP34Error::NotApproved);
+                }
+            }
+
+            if approve {
+                self.add_allowance_operator(&owner, &caller, &id);
+            } else {
+                self.remove_allowance_operator(&owner, &caller, &id);
+            }
+
+            Ok(owner)
+        }
+
         /// Transfers a token with `id` from an account `from` into an account `to`.
         /// note the data field is ignored, it's there to maintain the ABI signature.
         fn int_transfer_from(
@@ -357,37 +405,7 @@ mod psp34 {
         ) -> Result<(), PSP34Error> {
             let caller = self.env().caller();
 
-            // there are two cases to consider here:
-            //
-            //   1. if `id` is `None`, then the caller is granting access
-            //      to all of its own tokens.
-            //   2. if `id` is Some, then the caller may or may not be the
-            //      owner of the token, thus is granting access to a token
-            //      that may not be theirs.
-            //
-            //  given that the owner is part of the key in allowances, it's
-            //  important to make sure we reference the owner for each case.
-            let mut owner = caller;
-
-            if let Some(token) = &id {
-                owner = self
-                    .int_owner_of(&token)
-                    .ok_or(PSP34Error::TokenNotExists)?;
-
-                if approved && owner == operator {
-                    return Err(PSP34Error::SelfApprove);
-                }
-
-                if owner != caller && !self.int_allowance(&owner, &caller, Some(&token)) {
-                    return Err(PSP34Error::NotApproved);
-                }
-            }
-
-            if approved {
-                self.add_allowance_operator(&owner, &operator, &id);
-            } else {
-                self.remove_allowance_operator(&owner, &operator, &id);
-            }
+            self.int_approve(&operator, &id, approved)?;
 
             self.env().emit_event(Approval {
                 // `caller` isn't necessarily the owner but openbrush does
