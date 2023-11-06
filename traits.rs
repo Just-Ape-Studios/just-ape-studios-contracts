@@ -78,3 +78,32 @@ pub trait PSP34 {
     #[ink(message)]
     fn total_supply(&self) -> Balance;
 }
+
+#[ink::trait_definition]
+pub trait PSP34Enumerable {
+    /// Returns a token `Id` owned by `owner` at a given `index` of its token list.
+    /// Use along with `balance_of` to enumerate all of `owner`'s tokens.
+    #[ink(message)]
+    fn owners_token_by_index(&self, owner: AccountId, index: u128);
+
+    /// Returns a token `Id` at a given `index` of all the tokens stored by the contract.
+    /// Use along with `total_supply` to enumerate all tokens.
+    #[ink(message)]
+    fn token_by_index(&self, index: u128) -> Option<Id>;
+}
+
+#[ink::trait_definition]
+pub trait PSP34Metadata {
+    /// Returns the attribute of `id` for the given `key`.
+    ///
+    /// If `id` is a collection id of the token, it returns attributes for collection.
+    #[ink(message)]
+    fn get_attribute(&self, id: Id, key: Vec<u8>) -> Option<Vec<u8>>;
+}
+
+#[ink::trait_definition]
+pub trait PSP34Mintable {
+    /// Mints a new token with `id`.
+    #[ink(message)]
+    fn mint(&mut self, account: AccountId, id: Id) -> Result<(), PSP34Error>;
+}

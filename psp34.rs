@@ -3,9 +3,7 @@ mod psp34 {
     use ink::prelude::{vec, vec::Vec};
     use ink::storage::Mapping;
 
-    use crate::traits::extensions::psp34_metadata::PSP34Metadata;
-    use crate::traits::extensions::psp34_mintable::PSP34Mintable;
-    use crate::traits::{PSP34Error, PSP34};
+    use crate::traits::{PSP34Error, PSP34Metadata, PSP34Mintable, PSP34};
     use crate::types::Id;
 
     /// Event emitted when a token transfer occurs.
@@ -190,13 +188,9 @@ mod psp34 {
                 ));
             }
 
-            let count = self
-                .tokens_per_owner
-                .get(account)
-                .map(|t| t - 1)
-                .ok_or(PSP34Error::SafeTransferCheckFailed(
-                    "token should exist".into(),
-                ))?;
+            let count = self.tokens_per_owner.get(account).map(|t| t - 1).ok_or(
+                PSP34Error::SafeTransferCheckFailed("token should exist".into()),
+            )?;
 
             self.tokens_per_owner.insert(account, &count);
             self.tokens_owner.remove(token);
@@ -253,8 +247,7 @@ mod psp34 {
                 allowance.push(*operator);
                 self.allowances.insert((owner, &token), allowance);
             } else {
-                self.allowances
-                    .insert((owner, &token), &vec![*operator]);
+                self.allowances.insert((owner, &token), &vec![*operator]);
             }
         }
 
@@ -292,9 +285,7 @@ mod psp34 {
             let mut owner = *caller;
 
             if let Some(token) = &id {
-                owner = self
-                    .owner_of(&token)
-                    .ok_or(PSP34Error::TokenNotExists)?;
+                owner = self.owner_of(&token).ok_or(PSP34Error::TokenNotExists)?;
 
                 if approve && owner == *caller {
                     return Err(PSP34Error::SelfApprove);
