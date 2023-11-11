@@ -1,23 +1,11 @@
-use ink::{prelude::string::String, prelude::vec::Vec, primitives::AccountId};
+use ink::{
+    prelude::{string::String, vec::Vec},
+    primitives::AccountId,
+};
+
+use crate::PSP34Error;
 
 use crate::types::{Balance, Id};
-
-#[derive(scale::Encode, scale::Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-pub enum PSP34Error {
-    /// Custom error type for cases if writer of traits added own restrictions
-    Custom(String),
-    /// Returned if owner approves self
-    SelfApprove,
-    /// Returned if the caller doesn't have allowance for transferring.
-    NotApproved,
-    /// Returned if the owner already own the token.
-    TokenExists,
-    /// Returned if the token doesn't exist
-    TokenNotExists,
-    /// Returned if safe transfer check fails
-    SafeTransferCheckFailed(String),
-}
 
 #[ink::trait_definition]
 pub trait PSP34 {
@@ -74,31 +62,15 @@ pub trait PSP34 {
     #[ink(message)]
     fn transfer(&mut self, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error>;
 
+    #[ink(message)]
+    fn transfer_from(&mut self, from: AccountId, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error>;
+
     /// Returns the current total supply of the NFT.
     #[ink(message)]
     fn total_supply(&self) -> Balance;
-}
 
-#[ink::trait_definition]
-pub trait PSP34Enumerable {
-    /// Returns a token `Id` owned by `owner` at a given `index` of its token list.
-    /// Use along with `balance_of` to enumerate all of `owner`'s tokens.
     #[ink(message)]
-    fn owners_token_by_index(&self, owner: AccountId, index: u128);
-
-    /// Returns a token `Id` at a given `index` of all the tokens stored by the contract.
-    /// Use along with `total_supply` to enumerate all tokens.
-    #[ink(message)]
-    fn token_by_index(&self, index: u128) -> Option<Id>;
-}
-
-#[ink::trait_definition]
-pub trait PSP34Metadata {
-    /// Returns the attribute of `id` for the given `key`.
-    ///
-    /// If `id` is a collection id of the token, it returns attributes for collection.
-    #[ink(message)]
-    fn get_attribute(&self, id: Id, key: Vec<u8>) -> Option<Vec<u8>>;
+    fn max_supply(&self) -> Balance;
 }
 
 #[ink::trait_definition]
