@@ -173,11 +173,6 @@ mod token {
 
     impl PSP34Enumerable for Token {
         #[ink(message)]
-        fn owners_token_by_index(&self, owner: AccountId, index: u128) -> Option<Id> {
-            self.data.owners_token_by_index(owner, index)
-        }
-
-        #[ink(message)]
         fn token_by_index(&self, index: u128) -> Option<Id> {
             self.data.token_by_index(index)
         }

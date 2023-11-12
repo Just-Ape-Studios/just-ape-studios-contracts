@@ -39,8 +39,7 @@ pub struct PSP34Data {
     pub allowances: Mapping<(AccountId, Option<Id>), Vec<AccountId>>,
     pub total_supply: Balance,
     pub max_supply: Balance,
-    pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>,
-    pub owner_tokens: Mapping<AccountId, Vec<Id>>
+    pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>
 
 }
 
@@ -149,29 +148,6 @@ impl PSP34Data {
         self.tokens_owner.contains(&id)
     }
 
-    fn add_element(&mut self, account: AccountId, element: Id) {
-        if let Some(mut vec) = self.owner_tokens.get(&account) {
-            vec.push(element);
-        } else {
-            self.owner_tokens.insert(account, &vec![(element)]);
-        }
-    }
-
-    fn get_index_of_element(&self, account:AccountId, element: Id) -> Option<usize> {
-        let array = self.owner_tokens.get(account).unwrap_or(vec![]);
-        array.iter().position(|x| x == &element)
-    }
-
-    fn remove_element(&mut self, account: AccountId, index: usize) {
-        if let Some(mut vec) = self.owner_tokens.get(&account) {
-            if index < vec.len() {
-                let last_index = vec.len() - 1;
-                vec.swap(index, last_index);
-                vec.pop();
-            }
-        }
-    }    
-
 }
 
 
@@ -186,8 +162,7 @@ impl PSP34Data {
             allowances: Default::default(),
             attributes: Default::default(),
             total_supply: 0,
-            max_supply,
-            owner_tokens: Default::default()
+            max_supply
         };
         
         data
@@ -324,24 +299,12 @@ impl PSP34Data {
         self.remove_token_allowances(from, id.clone());
         self.remove_token_from(from, id.clone())?;
         self.add_token_to(to, id.clone())?;
-
-        let index = self.get_index_of_element(from, id.clone()).unwrap();
-
-        self.remove_element(from, index);
-
-        self.add_element(to, id.clone());
     
         Ok(vec![PSP34Event::Transfer {
             from: Some(from),
             to: Some(to),
             id,
         }])
-    }
-
-    pub fn owners_token_by_index(&self, owner: AccountId, index: u128) -> Option<Id> {
-        let array = self.owner_tokens.get(&owner).unwrap_or(vec![]);
-        let item = usize::try_from(index).unwrap();
-        array.get(item).cloned()
     }
 
     pub fn token_by_index(&self, index: u128) -> Option<Id> {
@@ -368,8 +331,6 @@ impl PSP34Data {
         self.total_supply += 1;
         self.inc_qty_owner_tokens(account);
         self.tokens_owner.insert(id.clone(), &account);
-        
-        self.add_element(account, id.clone());
 
         Ok(vec![PSP34Event::Transfer {
             from: None,
@@ -389,8 +350,6 @@ impl PSP34Data {
         self.total_supply += 1;
         self.inc_qty_owner_tokens(account);
         self.tokens_owner.insert(id.clone(), &account);
-        
-        self.add_element(account, id.clone());
 
         self.attributes.insert((id.clone(), key.clone()), &value);
 
