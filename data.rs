@@ -165,10 +165,12 @@ impl PSP34Data {
     fn remove_element(&mut self, account: AccountId, index: usize) {
         if let Some(mut vec) = self.owner_tokens.get(&account) {
             if index < vec.len() {
-                vec.remove(index);
+                let last_index = vec.len() - 1;
+                vec.swap(index, last_index);
+                vec.pop();
             }
         }
-    }
+    }    
 
 }
 
