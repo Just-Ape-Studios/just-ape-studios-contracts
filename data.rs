@@ -154,7 +154,7 @@ impl PSP34Data {
     // Creates a token with `max supply` set.
     pub fn new(max_supply: Balance) -> PSP34Data {
 
-        let mut data = PSP34Data {
+        let data = PSP34Data {
             tokens_owner: Default::default(),
             tokens_per_owner: Default::default(),
             allowances: Default::default(),
@@ -258,27 +258,8 @@ impl PSP34Data {
         id: Id,
         _data: Vec<u8>,
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
-        // check that the token exists
-        if !self.exists(id.clone()) {
-            return Err(PSP34Error::TokenNotExists);
-        }
-    
-        // check that the `to` account accepts transfers
-        if to == AccountId::from([0; 32]) {
-            return Err(PSP34Error::SafeTransferCheckFailed(
-                "'to' account is zeroed".into(),
-            ));
-        }
-    
-        // check that the account performing the transfer has the
-        // perms to do so
-        if !self.owner_or_approved(from, id.clone()) {
-            return Err(PSP34Error::NotApproved);
-        }
-    
-        self.remove_token_allowances(from, id.clone());
-        self.remove_token_from(from, id.clone())?;
-        self.add_token_to(to, id.clone())?;
+        
+        self.transfer_from(from, to, id.clone(), _data)?;
     
         Ok(vec![PSP34Event::Transfer {
             from: Some(from),
@@ -296,7 +277,26 @@ impl PSP34Data {
         _data: Vec<u8>,
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
 
-        self.transfer(from, to, id, _data)?;
+        if !self.exists(id.clone()) {
+            return Err(PSP34Error::TokenNotExists);
+        }
+
+        // check that the `to` account accepts transfers
+        if to == AccountId::from([0; 32]) {
+            return Err(PSP34Error::SafeTransferCheckFailed(
+                "'to' account is zeroed".into(),
+            ));
+        }
+
+        // check that the account performing the transfer has the
+        // perms to do so
+        if !self.owner_or_approved(from, id.clone()) {
+            return Err(PSP34Error::NotApproved);
+        }
+
+        self.remove_token_allowances(from, id.clone());
+        self.remove_token_from(from, id.clone())?;
+        self.add_token_to(to, id.clone())?;
     
         Ok(vec![PSP34Event::Transfer {
             from: Some(from),

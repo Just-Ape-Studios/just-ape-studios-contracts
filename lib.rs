@@ -145,7 +145,7 @@ mod token {
         fn transfer_from(&mut self, from: AccountId, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error> {
             let events = self
                 .data
-                .transfer_from(self.env().caller(), to, id, data)?;
+                .transfer_from(from, to, id, data)?;
             self.emit_events(events);
             Ok(())
         }
