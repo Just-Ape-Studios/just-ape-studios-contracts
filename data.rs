@@ -342,7 +342,7 @@ impl PSP34Data {
         array.get(item).cloned()
     }
 
-    pub fn token_by_index(&self, owner: AccountId, index: u128) -> Option<Id> {
+    pub fn token_by_index(&self, index: u128) -> Option<Id> {
         if self.tokens_owner.contains(Id::U128(index)) {
             Some(Id::U128(index))
         } else {
@@ -390,12 +390,16 @@ impl PSP34Data {
         
         self.add_element(account, id.clone());
 
-        self.attributes.insert((id.clone(), key), &value);
+        self.attributes.insert((id.clone(), key.clone()), &value);
 
         Ok(vec![PSP34Event::Transfer {
             from: None,
             to: Some(account),
-            id,
+            id: id.clone()
+        }, PSP34Event::AttributeSet {
+            id: id.clone(),
+            key: key.clone(),
+            data: value,
         }])
     }
 
