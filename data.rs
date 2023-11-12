@@ -187,8 +187,8 @@ impl PSP34Data {
         id: Id,
         _data: Vec<u8>,
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
-        // check that the token exists
-        self.transfer(from, to, id, data);
+
+        self.transfer(from, to, id, data)?;
     
         Ok(vec![PSP34Event::Transfer {
             from: Some(from),
