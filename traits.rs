@@ -79,3 +79,16 @@ pub trait PSP34Mintable {
     #[ink(message)]
     fn mint(&mut self, account: AccountId, id: Id) -> Result<(), PSP34Error>;
 }
+
+pub trait PSP34Enumerable {
+    #[ink(message)]
+    fn owners_token_by_index(&self, owner: AccountId, index: u128) -> Option<Id>;
+
+    #[ink(message)]
+    fn token_by_index(&self, index: u128) -> Option<Id>;
+}
+
+pub trait PSP34Metadata {
+    #[ink(message)]
+    fn get_attribute(&self, id: AccountId, key: Vec<u8>) -> Option<Vec<u8>>;
+}
