@@ -237,7 +237,7 @@ impl PSP34Data {
         }])
     }
 
-    pub fn owner_or_approved(&self, account: AccountId, token: Id) -> bool {
+    fn owner_or_approved(&self, account: AccountId, token: Id) -> bool {
         let owner = self.owner_of(token.clone());
 
         match owner {
@@ -252,7 +252,7 @@ impl PSP34Data {
     }
 
     /// Removes an association of a `token` pertaining to an `account`
-    pub fn remove_token_from(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
+    fn remove_token_from(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
         if !self.exists(token.clone()) {
             return Err(PSP34Error::SafeTransferCheckFailed(
                 "token should exist".into(),
@@ -270,7 +270,7 @@ impl PSP34Data {
     }
 
     /// Adds a new association between a `token` pertaining to an `account`
-    pub fn add_token_to(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
+    fn add_token_to(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
         if self.exists(token.clone()) {
             return Err(PSP34Error::SafeTransferCheckFailed(
                 "token should not exist".into(),
@@ -289,11 +289,11 @@ impl PSP34Data {
         Ok(())
     }
 
-    pub fn remove_token_allowances(&mut self, account: AccountId, token: Id) {
+    fn remove_token_allowances(&mut self, account: AccountId, token: Id) {
         self.allowances.remove((account, Some(token)));
     }
 
-    pub fn add_allowance_operator(
+    fn add_allowance_operator(
         &mut self,
         owner: AccountId,
         operator: AccountId,
@@ -310,7 +310,7 @@ impl PSP34Data {
         }
     }
 
-    pub fn remove_allowance_operator(
+    fn remove_allowance_operator(
         &mut self,
         owner: AccountId,
         operator: AccountId,
@@ -325,7 +325,7 @@ impl PSP34Data {
         }
     }
 
-    pub fn inc_qty_owner_tokens(&mut self, account: AccountId) -> u32 {
+    fn inc_qty_owner_tokens(&mut self, account: AccountId) -> u32 {
         let count = self
             .tokens_per_owner
             .get(account)
@@ -336,7 +336,7 @@ impl PSP34Data {
         count
     }
 
-    pub fn exists(&self, id: Id) -> bool {
+    fn exists(&self, id: Id) -> bool {
         self.tokens_owner.contains(&id)
     }
 
