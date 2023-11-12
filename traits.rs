@@ -90,5 +90,5 @@ pub trait PSP34Enumerable {
 
 pub trait PSP34Metadata {
     #[ink(message)]
-    fn get_attribute(&self, id: AccountId, key: Vec<u8>) -> Option<Vec<u8>>;
+    fn get_attribute(&self, id: Id, key: Vec<u8>) -> Option<Vec<u8>>;
 }
