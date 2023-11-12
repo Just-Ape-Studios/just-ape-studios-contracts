@@ -42,6 +42,114 @@ pub struct PSP34Data {
     pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>
 }
 
+//Internal methods here
+impl PSP34Data {
+    fn owner_or_approved(&self, account: AccountId, token: Id) -> bool {
+        let owner = self.owner_of(token.clone());
+
+        match owner {
+            Some(owner) => {
+                account != AccountId::from([0x0; 32])
+                    && (owner == account
+                        || self.allowance(owner, account, Some(token))
+                        || self.allowance(owner, account, None))
+            }
+            None => false,
+        }
+    }
+
+    /// Removes an association of a `token` pertaining to an `account`
+    fn remove_token_from(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
+        if !self.exists(token.clone()) {
+            return Err(PSP34Error::SafeTransferCheckFailed(
+                "token should exist".into(),
+            ));
+        }
+    
+        let count = self.tokens_per_owner.get(&account).map(|t| t - 1).ok_or(
+            PSP34Error::SafeTransferCheckFailed("token should exist".into()),
+        )?;
+    
+        self.tokens_per_owner.insert(account, &count);
+        self.tokens_owner.remove(&token);
+    
+        Ok(())
+    }
+
+    /// Adds a new association between a `token` pertaining to an `account`
+    fn add_token_to(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
+        if self.exists(token.clone()) {
+            return Err(PSP34Error::SafeTransferCheckFailed(
+                "token should not exist".into(),
+            ));
+        }
+    
+        if account == AccountId::from([0; 32]) {
+            return Err(PSP34Error::SafeTransferCheckFailed(
+                "'to' account is zeroed".into(),
+            ));
+        }
+    
+        self.inc_qty_owner_tokens(account);
+        self.tokens_owner.insert(token.clone(), &account);
+    
+        Ok(())
+    }
+
+    fn remove_token_allowances(&mut self, account: AccountId, token: Id) {
+        self.allowances.remove((account, Some(token)));
+    }
+
+    fn add_allowance_operator(
+        &mut self,
+        owner: AccountId,
+        operator: AccountId,
+        token: Option<Id>,
+    ) {
+        if let Some(mut allowance) = self.allowances.get((owner, token.clone())) {
+            if allowance.contains(&operator) {
+                return;
+            }
+            allowance.push(operator);
+            self.allowances.insert((owner, token), &allowance);
+        } else {
+            self.allowances.insert((owner, token), &vec![operator]);
+        }
+    }
+
+    fn remove_allowance_operator(
+        &mut self,
+        owner: AccountId,
+        operator: AccountId,
+        token: Option<Id>,
+    ) {
+        if let Some(mut allowance) = self.allowances.get((owner, token.clone())) {
+            if let Some(index) = allowance.iter().position(|x| x == &operator) {
+                allowance.remove(index);
+            }
+
+            self.allowances.insert((owner, token), &allowance);
+        }
+    }
+
+    fn inc_qty_owner_tokens(&mut self, account: AccountId) -> u32 {
+        let count = self
+            .tokens_per_owner
+            .get(account)
+            .map(|t| t + 1)
+            .unwrap_or(1);
+
+        self.tokens_per_owner.insert(account, &count);
+        count
+    }
+
+    fn exists(&self, id: Id) -> bool {
+        self.tokens_owner.contains(&id)
+    }
+}
+
+
+//External methods here
 impl PSP34Data {
     // Creates a token with `max supply` set.
     pub fn new(max_supply: Balance) -> PSP34Data {
@@ -217,108 +325,4 @@ impl PSP34Data {
             id,
         }])
     }
-
-    fn owner_or_approved(&self, account: AccountId, token: Id) -> bool {
-        let owner = self.owner_of(token.clone());
-
-        match owner {
-            Some(owner) => {
-                account != AccountId::from([0x0; 32])
-                    && (owner == account
-                        || self.allowance(owner, account, Some(token))
-                        || self.allowance(owner, account, None))
-            }
-            None => false,
-        }
-    }
-
-    /// Removes an association of a `token` pertaining to an `account`
-    fn remove_token_from(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
-        if !self.exists(token.clone()) {
-            return Err(PSP34Error::SafeTransferCheckFailed(
-                "token should exist".into(),
-            ));
-        }
-    
-        let count = self.tokens_per_owner.get(&account).map(|t| t - 1).ok_or(
-            PSP34Error::SafeTransferCheckFailed("token should exist".into()),
-        )?;
-    
-        self.tokens_per_owner.insert(account, &count);
-        self.tokens_owner.remove(&token);
-    
-        Ok(())
-    }
-
-    /// Adds a new association between a `token` pertaining to an `account`
-    fn add_token_to(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
-        if self.exists(token.clone()) {
-            return Err(PSP34Error::SafeTransferCheckFailed(
-                "token should not exist".into(),
-            ));
-        }
-    
-        if account == AccountId::from([0; 32]) {
-            return Err(PSP34Error::SafeTransferCheckFailed(
-                "'to' account is zeroed".into(),
-            ));
-        }
-    
-        self.inc_qty_owner_tokens(account);
-        self.tokens_owner.insert(token.clone(), &account);
-    
-        Ok(())
-    }
-
-    fn remove_token_allowances(&mut self, account: AccountId, token: Id) {
-        self.allowances.remove((account, Some(token)));
-    }
-
-    fn add_allowance_operator(
-        &mut self,
-        owner: AccountId,
-        operator: AccountId,
-        token: Option<Id>,
-    ) {
-        if let Some(mut allowance) = self.allowances.get((owner, token.clone())) {
-            if allowance.contains(&operator) {
-                return;
-            }
-            allowance.push(operator);
-            self.allowances.insert((owner, token), &allowance);
-        } else {
-            self.allowances.insert((owner, token), &vec![operator]);
-        }
-    }
-
-    fn remove_allowance_operator(
-        &mut self,
-        owner: AccountId,
-        operator: AccountId,
-        token: Option<Id>,
-    ) {
-        if let Some(mut allowance) = self.allowances.get((owner, token.clone())) {
-            if let Some(index) = allowance.iter().position(|x| x == &operator) {
-                allowance.remove(index);
-            }
-
-            self.allowances.insert((owner, token), &allowance);
-        }
-    }
-
-    fn inc_qty_owner_tokens(&mut self, account: AccountId) -> u32 {
-        let count = self
-            .tokens_per_owner
-            .get(account)
-            .map(|t| t + 1)
-            .unwrap_or(1);
-
-        self.tokens_per_owner.insert(account, &count);
-        count
-    }
-
-    fn exists(&self, id: Id) -> bool {
-        self.tokens_owner.contains(&id)
-    }
-
 }
