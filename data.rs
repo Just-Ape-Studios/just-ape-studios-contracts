@@ -296,7 +296,7 @@ impl PSP34Data {
         _data: Vec<u8>,
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
 
-        self.transfer(from, to, id, data)?;
+        self.transfer(from, to, id, _data)?;
     
         Ok(vec![PSP34Event::Transfer {
             from: Some(from),
