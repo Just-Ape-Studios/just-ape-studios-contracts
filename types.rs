@@ -15,3 +15,49 @@ pub enum Id {
 
 pub type AccountId = <DefaultEnvironment as Environment>::AccountId;
 pub type Balance = <DefaultEnvironment as Environment>::Balance;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MultiMapping<K, V> {
+    keys: Vec<K>,
+    values: Mapping<K, Vec<V>>,
+}
+
+impl<K: Ord + Clone, V: Clone> MultiMapping<K, V> {
+    pub fn new() -> Self {
+        Self {
+            keys: Vec::new(),
+            values: Mapping::new(),
+        }
+    }
+
+    pub fn insert(&mut self, key: K, value: V) {
+        if let Some(values) = self.values.get_mut(&key) {
+            values.push(value);
+        } else {
+            self.keys.push(key.clone());
+            self.values.insert(key, vec![value]);
+        }
+    }
+
+    pub fn remove(&mut self, key: &K, value: &V) {
+        if let Some(values) = self.values.get_mut(key) {
+            values.retain(|v| v != value);
+            if values.is_empty() {
+                self.keys.retain(|k| k != key);
+                self.values.take(key);
+            }
+        }
+    }
+
+    pub fn get(&self, key: &K) -> Option<&Vec<V>> {
+        self.values.get(key)
+    }
+
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut Vec<V>> {
+        self.values.get_mut(key)
+    }
+
+    pub fn keys(&self) -> impl Iterator<Item = &K> {
+        self.keys.iter()
+    }
+}
