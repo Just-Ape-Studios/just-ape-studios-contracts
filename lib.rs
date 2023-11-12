@@ -155,10 +155,10 @@ mod token {
 
     impl PSP34Mintable for Token {
         #[ink(message)]
-        fn mint(&mut self, account: AccountId, id: Id) -> Result<(), PSP34Error> {
+        fn mint(&mut self, account: AccountId) -> Result<(), PSP34Error> {
             let events = self
                 .data
-                .mint(account, id)?;
+                .mint(account)?;
             self.emit_events(events);
             Ok(())
         }

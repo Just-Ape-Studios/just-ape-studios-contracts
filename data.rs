@@ -39,7 +39,9 @@ pub struct PSP34Data {
     pub allowances: Mapping<(AccountId, Option<Id>), Vec<AccountId>>,
     pub total_supply: Balance,
     pub max_supply: Balance,
-    pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>
+    pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>,
+    pub owner_tokens: Mapping<AccountId, Vec<Id>>
+
 }
 
 //Internal methods here
@@ -146,6 +148,28 @@ impl PSP34Data {
     fn exists(&self, id: Id) -> bool {
         self.tokens_owner.contains(&id)
     }
+
+    fn add_element(&mut self, account: AccountId, element: Id) {
+        if let Some(mut vec) = self.owner_tokens.get(&account) {
+            vec.push(element);
+        } else {
+            self.owner_tokens.insert(account, &vec![(element)]);
+        }
+    }
+
+    fn get_index_of_element(&self, account:AccountId, element: Id) -> Option<usize> {
+        let array = self.owner_tokens.get(account).unwrap_or(vec![]);
+        array.iter().position(|x| x == &element)
+    }
+
+    fn remove_element(&mut self, account: AccountId, index: usize) {
+        if let Some(mut vec) = self.owner_tokens.get(&account) {
+            if index < vec.len() {
+                vec.remove(index);
+            }
+        }
+    }
+
 }
 
 
@@ -160,7 +184,8 @@ impl PSP34Data {
             allowances: Default::default(),
             attributes: Default::default(),
             total_supply: 0,
-            max_supply
+            max_supply,
+            owner_tokens: Default::default()
         };
         
         data
@@ -297,6 +322,12 @@ impl PSP34Data {
         self.remove_token_allowances(from, id.clone());
         self.remove_token_from(from, id.clone())?;
         self.add_token_to(to, id.clone())?;
+
+        let index = self.get_index_of_element(from, id.clone()).unwrap();
+
+        self.remove_element(from, index);
+
+        self.add_element(to, id.clone());
     
         Ok(vec![PSP34Event::Transfer {
             from: Some(from),
@@ -305,11 +336,28 @@ impl PSP34Data {
         }])
     }
 
+    pub fn owners_token_by_index(&self, owner: AccountId, index: u128) -> Option<Id> {
+        let array = self.owner_tokens.get(&owner).unwrap_or(vec![]);
+        let item = usize::try_from(index).unwrap();
+        array.get(item).cloned()
+    }
 
-    pub fn mint(&mut self, account: AccountId, id: Id) -> Result<Vec<PSP34Event>, PSP34Error> {
-        if let Some(_) = self.tokens_owner.get(id.clone()) {
-            return Err(PSP34Error::TokenExists);
+    pub fn token_by_index(&self, owner: AccountId, index: u128) -> Option<Id> {
+        if self.tokens_owner.contains(Id::U128(index)) {
+            Some(Id::U128(index))
+        } else {
+            None
         }
+    }
+
+
+    pub fn get_attribute(&self, id: Id, key: Vec<u8>) -> Option<Vec<u8>> {
+        self.attributes.get((id, key))
+    }
+
+    pub fn mint(&mut self, account: AccountId) -> Result<Vec<PSP34Event>, PSP34Error> {
+
+        let id = Id::U128(self.total_supply() + 1);
 
         if self.total_supply == self.max_supply {
             return Err(PSP34Error::ReachedMaxSupply);
@@ -318,6 +366,8 @@ impl PSP34Data {
         self.total_supply += 1;
         self.inc_qty_owner_tokens(account);
         self.tokens_owner.insert(id.clone(), &account);
+        
+        self.add_element(account, id.clone());
 
         Ok(vec![PSP34Event::Transfer {
             from: None,
@@ -325,4 +375,28 @@ impl PSP34Data {
             id,
         }])
     }
+
+    pub fn mint_with_attribute(&mut self, account: AccountId, key:Vec<u8>, value:Vec<u8>) -> Result<Vec<PSP34Event>, PSP34Error> {
+
+        let id = Id::U128(self.total_supply() + 1);
+
+        if self.total_supply == self.max_supply {
+            return Err(PSP34Error::ReachedMaxSupply);
+        }
+
+        self.total_supply += 1;
+        self.inc_qty_owner_tokens(account);
+        self.tokens_owner.insert(id.clone(), &account);
+        
+        self.add_element(account, id.clone());
+
+        self.attributes.insert((id.clone(), key), &value);
+
+        Ok(vec![PSP34Event::Transfer {
+            from: None,
+            to: Some(account),
+            id,
+        }])
+    }
+
 }

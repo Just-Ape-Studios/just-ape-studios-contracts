@@ -77,7 +77,7 @@ pub trait PSP34 {
 pub trait PSP34Mintable {
     /// Mints a new token with `id`.
     #[ink(message)]
-    fn mint(&mut self, account: AccountId, id: Id) -> Result<(), PSP34Error>;
+    fn mint(&mut self, account: AccountId) -> Result<(), PSP34Error>;
 }
 
 #[ink::trait_definition]
