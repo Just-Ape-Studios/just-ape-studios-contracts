@@ -26,5 +26,4 @@ std = [
     "scale/std",
     "scale-info/std",
 ]
-contract = []
 ink-as-dependency = []

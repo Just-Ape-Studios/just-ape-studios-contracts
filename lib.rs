@@ -14,7 +14,6 @@ pub use errors::PSP34Error;
 pub use traits::{PSP34Mintable, PSP34};
 pub use crate::types::Id;
 
-#[cfg(feature = "contract")]
 #[ink::contract]
 
 mod token {
@@ -71,30 +70,22 @@ mod token {
 
     #[ink(event)]
     pub struct Approval {
-        #[ink(topic)]
         owner: AccountId,
-        #[ink(topic)]
         id: Id,
-        #[ink(topic)]
         approved: bool,
     }
 
     #[ink(event)]
     pub struct Transfer {
-        #[ink(topic)]
         from: Option<AccountId>,
-        #[ink(topic)]
         to: Option<AccountId>,
         id: Id,
     }
 
     #[ink(event)]
     pub struct AttributeSet {
-        #[ink(topic)]
         id: Id,
-        #[ink(topic)]
         key: Vec<u8>,
-        #[ink(topic)]
         data: Vec<u8>,
     }
 
