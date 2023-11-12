@@ -36,10 +36,18 @@ pub enum PSP34Event {
 pub struct PSP34Data {
     pub tokens_owner: Mapping<Id, AccountId>,
     pub tokens_per_owner: Mapping<AccountId, u32>,
-    pub allowances: Mapping<(AccountId, Option<Id>), Vec<AccountId>>,
+    pub allowances: Mapping<(AccountId, AccountId, Id), bool>,
+    pub allowances_all: Mapping<(AccountId, AccountId), bool>,
     pub total_supply: Balance,
     pub max_supply: Balance,
-    pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>
+    pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>,
+
+    pub all_tokens: Vec<u128>,
+    pub all_tokens_index: Mapping<Id, Balance>,
+
+    pub owned_tokens: Mapping<(AccountId, Balance), Id>,
+    pub owned_tokens_index: Mapping<Id, Balance>
+
 }
 
 //Internal methods here
@@ -58,6 +66,40 @@ impl PSP34Data {
         }
     }
 
+    fn remove_token(&mut self, token: Id) -> Result<(), PSP34Error> {
+        if !self.exists(token.clone()) {
+            return Err(PSP34Error::SafeTransferCheckFailed(
+                "token should exist".into(),
+            ));
+        }
+
+        let last_token_index:u128 = (self.all_tokens.len() - 1).try_into().unwrap();
+        let token_index = self.all_tokens_index.get(token.clone()).unwrap();
+
+        // When the token to delete is the last token, the swap operation is unnecessary. However, since this occurs so
+        // rarely (when the last minted token is burnt) that we still do the swap here to avoid the gas cost of adding
+        // an 'if' statement (like in remove_token_from)
+
+        let last_token_id = Id::U128(self.all_tokens[usize::try_from(last_token_index).unwrap()]);
+
+        self.all_tokens[usize::try_from(token_index).unwrap()] = u128::from(last_token_id.clone());
+        self.all_tokens_index.insert(last_token_id.clone(), &token_index);
+
+        // This also deletes the contents at the last position of the array
+
+        self.all_tokens_index.remove(token.clone());
+        self.all_tokens.pop();
+
+        Ok(())
+    }
+
+    fn add_token(&mut self, token: Id) -> Result<(), PSP34Error> {
+        let length:u128 = self.all_tokens.len().try_into().unwrap();
+        self.all_tokens_index.insert(token.clone(), &length);
+        self.all_tokens.push(u128::from(token));
+        Ok(())
+    }
+
     /// Removes an association of a `token` pertaining to an `account`
     fn remove_token_from(&mut self, account: AccountId, token: Id) -> Result<(), PSP34Error> {
         if !self.exists(token.clone()) {
@@ -69,9 +111,22 @@ impl PSP34Data {
         let count = self.tokens_per_owner.get(&account).map(|t| t - 1).ok_or(
             PSP34Error::SafeTransferCheckFailed("token should exist".into()),
         )?;
+
+        let last_token_index:u128 = self.balance_of(account).try_into().unwrap();
+        let token_index:u128 = self.owned_tokens_index.get(token.clone()).unwrap();
+
+        if token_index != last_token_index {
+            let last_token_id = self.owned_tokens.get((account, last_token_index)).unwrap();
+
+            self.owned_tokens.insert((account, token_index), &last_token_id.clone());
+            self.owned_tokens_index.insert(last_token_id, &token_index);
+        }
+
+        self.owned_tokens_index.remove(token.clone());
+        self.owned_tokens.remove((account, last_token_index));
     
         self.tokens_per_owner.insert(account, &count);
-        self.tokens_owner.remove(&token);
+        self.tokens_owner.remove(&token.clone());
     
         Ok(())
     }
@@ -89,47 +144,42 @@ impl PSP34Data {
                 "'to' account is zeroed".into(),
             ));
         }
-    
-        self.inc_qty_owner_tokens(account);
+        
         self.tokens_owner.insert(token.clone(), &account);
+
+        let length:u128 = (self.balance_of(account) - 1).try_into().unwrap();
+        self.owned_tokens.insert((account, length), &token.clone());
+        self.owned_tokens_index.insert(token.clone(), &length);
+
+        self.inc_qty_owner_tokens(account);
     
         Ok(())
-    }
-
-    fn remove_token_allowances(&mut self, account: AccountId, token: Id) {
-        self.allowances.remove((account, Some(token)));
     }
 
     fn add_allowance_operator(
         &mut self,
         owner: AccountId,
         operator: AccountId,
-        token: Option<Id>,
+        token: Id,
     ) {
-        if let Some(mut allowance) = self.allowances.get((owner, token.clone())) {
-            if allowance.contains(&operator) {
-                return;
-            }
-            allowance.push(operator);
-            self.allowances.insert((owner, token), &allowance);
-        } else {
-            self.allowances.insert((owner, token), &vec![operator]);
-        }
+        self.allowances.insert((owner, operator, token), &true);
     }
 
     fn remove_allowance_operator(
         &mut self,
         owner: AccountId,
         operator: AccountId,
-        token: Option<Id>,
+        token: Id,
     ) {
-        if let Some(mut allowance) = self.allowances.get((owner, token.clone())) {
-            if let Some(index) = allowance.iter().position(|x| x == &operator) {
-                allowance.remove(index);
-            }
+        self.allowances.insert((owner, operator, token), &false);
+    }
 
-            self.allowances.insert((owner, token), &allowance);
-        }
+    fn is_allowed_single(&self, owner:AccountId, operator: AccountId, token: Id) -> bool {
+        self.allowances.get((owner, operator, token)).unwrap_or(false)
+    }
+
+    fn is_allowed_all(&self, owner:AccountId, operator: AccountId) -> bool {
+        self.allowances_all.get((owner, operator)).unwrap_or(false)
     }
 
     fn inc_qty_owner_tokens(&mut self, account: AccountId) -> u32 {
@@ -146,6 +196,7 @@ impl PSP34Data {
     fn exists(&self, id: Id) -> bool {
         self.tokens_owner.contains(&id)
     }
+
 }
 
 
@@ -160,7 +211,12 @@ impl PSP34Data {
             allowances: Default::default(),
             attributes: Default::default(),
             total_supply: 0,
-            max_supply
+            max_supply,
+            all_tokens: vec![],
+            all_tokens_index: Default::default(),
+            owned_tokens: Default::default(),
+            owned_tokens_index: Default::default(),
+            allowances_all: Default::default()
         };
         
         data
@@ -187,11 +243,7 @@ impl PSP34Data {
     /// the operator is approved to withdraw all owner's tokens.
 
     pub fn allowance(&self, owner: AccountId, operator: AccountId, id: Option<Id>) -> bool {
-        if let Some(allowances) = self.allowances.get(&(owner, id)) {
-            allowances.contains(&operator)
-        } else {
-            false
-        }
+        self.is_allowed_single(owner, operator, id.unwrap()) || self.is_allowed_all(owner, operator)
     }
 
     /// Approves `operator` to withdraw  the `id` token from the caller's account.
@@ -216,6 +268,10 @@ impl PSP34Data {
     
         if let Some(ref token) = id {
 
+            if self.is_allowed_all(owner, operator) {
+                return Err(PSP34Error::NotAllowedToApprove);
+            }
+
             owner = self.owner_of(token.clone()).ok_or(PSP34Error::TokenNotExists)?;
     
             if approve && owner == operator {
@@ -225,12 +281,17 @@ impl PSP34Data {
             if owner != caller && !self.allowance(owner, caller, Some(token.clone())) {
                 return Err(PSP34Error::NotApproved);
             }
+
+            if approve {
+                self.add_allowance_operator(owner, operator, id.clone().unwrap());
+            } else {
+                self.remove_allowance_operator(owner, operator, id.clone().unwrap());
+            }
+
         }
-    
-        if approve {
-            self.add_allowance_operator(owner, operator, id.clone());
-        } else {
-            self.remove_allowance_operator(owner, operator, id.clone());
+
+        else {
+            self.allowances_all.insert((owner, operator), &true);
         }
     
         Ok(vec![PSP34Event::Approval {
@@ -294,7 +355,6 @@ impl PSP34Data {
             return Err(PSP34Error::NotApproved);
         }
 
-        self.remove_token_allowances(from, id.clone());
         self.remove_token_from(from, id.clone())?;
         self.add_token_to(to, id.clone())?;
     
@@ -305,19 +365,34 @@ impl PSP34Data {
         }])
     }
 
+    pub fn owners_token_by_index(&self, owner: AccountId, index: u128) -> Option<Id> {
+        self.owned_tokens.get((owner, index))
+    }
 
-    pub fn mint(&mut self, account: AccountId, id: Id) -> Result<Vec<PSP34Event>, PSP34Error> {
-        if let Some(_) = self.tokens_owner.get(id.clone()) {
-            return Err(PSP34Error::TokenExists);
+    pub fn token_by_index(&self, index: u128) -> Option<Id> {
+        if index >= self.all_tokens.len().try_into().unwrap() {
+            return None;
         }
+        Some(Id::U128(self.all_tokens[usize::try_from(index).unwrap()].into()))
+    }
+
+    pub fn get_attribute(&self, id: Id, key: Vec<u8>) -> Option<Vec<u8>> {
+        self.attributes.get((id, key))
+    }
+
+    pub fn mint(&mut self, account: AccountId) -> Result<Vec<PSP34Event>, PSP34Error> {
+
+        let id = Id::U128(self.total_supply() + 1);
 
         if self.total_supply == self.max_supply {
             return Err(PSP34Error::ReachedMaxSupply);
         }
 
         self.total_supply += 1;
-        self.inc_qty_owner_tokens(account);
-        self.tokens_owner.insert(id.clone(), &account);
+
+        self.add_token(id.clone())?;
+
+        self.add_token_to(account, id.clone())?;
 
         Ok(vec![PSP34Event::Transfer {
             from: None,
@@ -325,4 +400,51 @@ impl PSP34Data {
             id,
         }])
     }
+
+    pub fn burn(&mut self, account: AccountId, id: Id) -> Result<Vec<PSP34Event>, PSP34Error> {
+
+        if !self.exists(id.clone()) {
+            return Err(PSP34Error::TokenNotExists);
+        }
+
+        self.total_supply -= 1;
+
+        self.remove_token(id.clone())?;
+
+        self.remove_token_from(account, id.clone())?;
+
+        Ok(vec![PSP34Event::Transfer {
+            from: Some(account),
+            to: None,
+            id,
+        }])
+    }
+
+    pub fn mint_with_attribute(&mut self, account: AccountId, key:Vec<u8>, value:Vec<u8>) -> Result<Vec<PSP34Event>, PSP34Error> {
+
+        let id = Id::U128(self.total_supply() + 1);
+
+        if self.total_supply == self.max_supply {
+            return Err(PSP34Error::ReachedMaxSupply);
+        }
+
+        self.total_supply += 1;
+
+        self.add_token(id.clone())?;
+
+        self.add_token_to(account, id.clone())?;
+
+        self.attributes.insert((id.clone(), key.clone()), &value);
+
+        Ok(vec![PSP34Event::Transfer {
+            from: None,
+            to: Some(account),
+            id: id.clone()
+        }, PSP34Event::AttributeSet {
+            id: id.clone(),
+            key: key.clone(),
+            data: value,
+        }])
+    }
+
 }

@@ -13,5 +13,18 @@ pub enum Id {
     Bytes(Vec<u8>),
 }
 
+impl From<Id> for u128 {
+    fn from(id: Id) -> Self {
+        match id {
+            Id::U8(val) => val as u128,
+            Id::U16(val) => val as u128,
+            Id::U32(val) => val as u128,
+            Id::U64(val) => val as u128,
+            Id::U128(val) => val,
+            Id::Bytes(val) => u128::from_be_bytes(val.as_slice().try_into().unwrap()),
+        }
+    }
+}
+
 pub type AccountId = <DefaultEnvironment as Environment>::AccountId;
 pub type Balance = <DefaultEnvironment as Environment>::Balance;
