@@ -5,19 +5,20 @@ mod errors;
 mod traits;
 mod types;
 
-use ink::{
-    prelude::{vec, vec::Vec},
-};
+use ink::prelude::{vec, vec::Vec};
 
+pub use crate::types::Id;
 pub use data::{PSP34Data, PSP34Event};
 pub use errors::PSP34Error;
-pub use traits::{PSP34Mintable, PSP34Burnable, PSP34, PSP34Enumerable, PSP34Metadata};
-pub use crate::types::Id;
+pub use traits::{PSP34Burnable, PSP34Enumerable, PSP34Metadata, PSP34Mintable, PSP34};
 
 #[ink::contract]
 
 mod token {
-    use crate::{PSP34Data, PSP34Error, PSP34Event, PSP34, PSP34Mintable, PSP34Burnable, Id, PSP34Enumerable, PSP34Metadata};
+    use crate::{
+        Id, PSP34Burnable, PSP34Data, PSP34Enumerable, PSP34Error, PSP34Event, PSP34Metadata,
+        PSP34Mintable, PSP34,
+    };
     use ink::prelude::{string::String, vec::Vec};
 
     #[ink(storage)]
@@ -27,11 +28,9 @@ mod token {
 
     impl Token {
         #[ink(constructor)]
-        pub fn new(
-            max_supply: Balance
-        ) -> Self {
+        pub fn new(max_supply: Balance) -> Self {
             Self {
-                data: PSP34Data::new(max_supply)
+                data: PSP34Data::new(max_supply),
             }
         }
 
@@ -46,24 +45,14 @@ mod token {
                         operator,
                         id,
                         approved,
-                    } => {
-                        self.env().emit_event(Approval {
-                            owner,
-                            operator,
-                            id,
-                            approved,
-                        })
-                    },
-                    PSP34Event::AttributeSet {
+                    } => self.env().emit_event(Approval {
+                        owner,
+                        operator,
                         id,
-                        key,
-                        data
-                    } => {
-                        self.env().emit_event(AttributeSet {
-                            id,
-                            key,
-                            data
-                        })
+                        approved,
+                    }),
+                    PSP34Event::AttributeSet { id, key, data } => {
+                        self.env().emit_event(AttributeSet { id, key, data })
                     }
                 }
             }
@@ -93,7 +82,6 @@ mod token {
     }
 
     impl PSP34 for Token {
-
         #[ink(message)]
         fn collection_id(&self) -> Id {
             let account_id = self.env().account_id();
@@ -123,7 +111,9 @@ mod token {
             id: Option<Id>,
             approved: bool,
         ) -> Result<(), PSP34Error> {
-            let events = self.data.approve(self.env().caller(), operator, id, approved)?;
+            let events = self
+                .data
+                .approve(self.env().caller(), operator, id, approved)?;
             self.emit_events(events);
             Ok(())
         }
@@ -136,10 +126,14 @@ mod token {
         }
 
         #[ink(message)]
-        fn transfer_from(&mut self, from: AccountId, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error> {
-            let events = self
-                .data
-                .transfer_from(from, to, id, data)?;
+        fn transfer_from(
+            &mut self,
+            from: AccountId,
+            to: AccountId,
+            id: Id,
+            data: Vec<u8>,
+        ) -> Result<(), PSP34Error> {
+            let events = self.data.transfer_from(from, to, id, data)?;
             self.emit_events(events);
             Ok(())
         }
@@ -153,15 +147,12 @@ mod token {
         fn max_supply(&self) -> Balance {
             self.data.max_supply()
         }
-
     }
 
     impl PSP34Mintable for Token {
         #[ink(message)]
         fn mint(&mut self, account: AccountId) -> Result<(), PSP34Error> {
-            let events = self
-                .data
-                .mint(account)?;
+            let events = self.data.mint(account)?;
             self.emit_events(events);
             Ok(())
         }
@@ -170,9 +161,7 @@ mod token {
     impl PSP34Burnable for Token {
         #[ink(message)]
         fn burn(&mut self, account: AccountId, id: Id) -> Result<(), PSP34Error> {
-            let events = self
-                .data
-                .burn(account, id)?;
+            let events = self.data.burn(account, id)?;
             self.emit_events(events);
             Ok(())
         }
@@ -180,7 +169,7 @@ mod token {
 
     impl PSP34Metadata for Token {
         #[ink(message)]
-        fn get_attribute(&self, id: Id, key:Vec<u8>) -> Option<Vec<u8>> {
+        fn get_attribute(&self, id: Id, key: Vec<u8>) -> Option<Vec<u8>> {
             self.data.get_attribute(id, key)
         }
     }
@@ -196,5 +185,4 @@ mod token {
             self.data.owners_token_by_index(owner, index)
         }
     }
-
 }

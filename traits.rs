@@ -63,7 +63,13 @@ pub trait PSP34 {
     fn transfer(&mut self, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error>;
 
     #[ink(message)]
-    fn transfer_from(&mut self, from: AccountId, to: AccountId, id: Id, data: Vec<u8>) -> Result<(), PSP34Error>;
+    fn transfer_from(
+        &mut self,
+        from: AccountId,
+        to: AccountId,
+        id: Id,
+        data: Vec<u8>,
+    ) -> Result<(), PSP34Error>;
 
     /// Returns the current total supply of the NFT.
     #[ink(message)]

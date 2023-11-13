@@ -20,5 +20,5 @@ pub enum PSP34Error {
     /// Returned if finding token index not in owners collection
     OutOfBoundsIndex,
     /// Returned if trying to call approve when operator has all approved
-    NotAllowedToApprove
+    NotAllowedToApprove,
 }
