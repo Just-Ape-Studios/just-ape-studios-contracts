@@ -30,7 +30,7 @@ repository. [3]
 
 To use this crate please add the following line in your project's `Cargo.toml`:
 ```
-psp34 = { git = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contracts.git", default-features = "false" }
+psp34 = { git = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contracts.git", default-features = false }
 ```
 
 The contents of this repository can be used in following ways:
