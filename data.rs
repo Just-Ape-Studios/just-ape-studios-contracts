@@ -21,6 +21,7 @@ pub enum PSP34Event {
     },
     Approval {
         owner: AccountId,
+        operator: AccountId,
         id: Option<Id>,
         approved: bool,
     },
@@ -243,11 +244,13 @@ impl PSP34Data {
     /// the operator is approved to withdraw all owner's tokens.
 
     pub fn allowance(&self, owner: AccountId, operator: AccountId, id: Option<Id>) -> bool {
-        if let Some(ref index) = id {
-            self.is_allowed_single(owner, operator, id.unwrap())
-        }
-        else {
-            self.is_allowed_all(owner, operator)
+        match id {
+            Some(ref index) => {
+                self.is_allowed_single(owner, operator, id.unwrap())
+            },
+            None => {
+                self.is_allowed_all(owner, operator)
+            }
         }
     }
 
@@ -270,37 +273,42 @@ impl PSP34Data {
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
         
         let mut owner = caller;
+
+        match id {
+            Some(ref token) => {
+                if self.is_allowed_all(owner, operator) {
+                    return Err(PSP34Error::NotAllowedToApprove);
+                }
     
-        if let Some(ref token) = id {
-
-            if self.is_allowed_all(owner, operator) {
-                return Err(PSP34Error::NotAllowedToApprove);
-            }
-
-            owner = self.owner_of(token.clone()).ok_or(PSP34Error::TokenNotExists)?;
+                owner = self.owner_of(token.clone()).ok_or(PSP34Error::TokenNotExists)?;
+        
+                if approve && owner == operator {
+                    return Err(PSP34Error::SelfApprove);
+                }
+        
+                if owner != caller && !self.allowance(owner, caller, Some(token.clone())) {
+                    return Err(PSP34Error::NotApproved);
+                }
     
-            if approve && owner == operator {
-                return Err(PSP34Error::SelfApprove);
+                if approve {
+                    self.add_allowance_operator(owner, operator, id.clone().unwrap());
+                } else {
+                    self.remove_allowance_operator(owner, operator, id.clone().unwrap());
+                }
+            },
+            None => {
+                if approve {
+                    self.allowances_all.insert((owner, operator), &true);
+                }
+                else {
+                    self.allowances_all.insert((owner, operator), &false);
+                }
             }
-    
-            if owner != caller && !self.allowance(owner, caller, Some(token.clone())) {
-                return Err(PSP34Error::NotApproved);
-            }
-
-            if approve {
-                self.add_allowance_operator(owner, operator, id.clone().unwrap());
-            } else {
-                self.remove_allowance_operator(owner, operator, id.clone().unwrap());
-            }
-
-        }
-
-        else {
-            self.allowances_all.insert((owner, operator), &true);
         }
     
         Ok(vec![PSP34Event::Approval {
             owner,
+            operator,
             id,
             approved: approve,
         }])
