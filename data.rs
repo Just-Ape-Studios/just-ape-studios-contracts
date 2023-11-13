@@ -112,6 +112,9 @@ impl PSP34Data {
             PSP34Error::SafeTransferCheckFailed("token should exist".into()),
         )?;
 
+        self.tokens_per_owner.insert(account, &count);
+        self.tokens_owner.remove(&token.clone());
+
         let last_token_index:u128 = self.balance_of(account).try_into().unwrap();
         let token_index:u128 = self.owned_tokens_index.get(token.clone()).unwrap();
 
@@ -124,9 +127,6 @@ impl PSP34Data {
 
         self.owned_tokens_index.remove(token.clone());
         self.owned_tokens.remove((account, last_token_index));
-    
-        self.tokens_per_owner.insert(account, &count);
-        self.tokens_owner.remove(&token.clone());
     
         Ok(())
     }
@@ -144,14 +144,14 @@ impl PSP34Data {
                 "'to' account is zeroed".into(),
             ));
         }
+
+        self.inc_qty_owner_tokens(account);
         
         self.tokens_owner.insert(token.clone(), &account);
 
         let length:u128 = (self.balance_of(account) - 1).try_into().unwrap();
         self.owned_tokens.insert((account, length), &token.clone());
         self.owned_tokens_index.insert(token.clone(), &length);
-
-        self.inc_qty_owner_tokens(account);
     
         Ok(())
     }
@@ -243,7 +243,12 @@ impl PSP34Data {
     /// the operator is approved to withdraw all owner's tokens.
 
     pub fn allowance(&self, owner: AccountId, operator: AccountId, id: Option<Id>) -> bool {
-        self.is_allowed_single(owner, operator, id.unwrap()) || self.is_allowed_all(owner, operator)
+        if let Some(ref index) = id {
+            self.is_allowed_single(owner, operator, id.unwrap())
+        }
+        else {
+            self.is_allowed_all(owner, operator)
+        }
     }
 
     /// Approves `operator` to withdraw  the `id` token from the caller's account.
