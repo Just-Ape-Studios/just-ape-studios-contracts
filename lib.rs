@@ -43,12 +43,14 @@ mod token {
                     }
                     PSP34Event::Approval {
                         owner,
+                        operator,
                         id,
                         approved,
                     } => {
                         self.env().emit_event(Approval {
                             owner,
-                            id: id.expect(""),
+                            operator,
+                            id,
                             approved,
                         })
                     },
@@ -71,7 +73,8 @@ mod token {
     #[ink(event)]
     pub struct Approval {
         owner: AccountId,
-        id: Id,
+        operator: AccountId,
+        id: Option<Id>,
         approved: bool,
     }
 
