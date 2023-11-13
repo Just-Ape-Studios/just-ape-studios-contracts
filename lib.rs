@@ -11,13 +11,13 @@ use ink::{
 
 pub use data::{PSP34Data, PSP34Event};
 pub use errors::PSP34Error;
-pub use traits::{PSP34Mintable, PSP34, PSP34Enumerable, PSP34Metadata};
+pub use traits::{PSP34Mintable, PSP34Burnable, PSP34, PSP34Enumerable, PSP34Metadata};
 pub use crate::types::Id;
 
 #[ink::contract]
 
 mod token {
-    use crate::{PSP34Data, PSP34Error, PSP34Event, PSP34, PSP34Mintable, Id, PSP34Enumerable, PSP34Metadata};
+    use crate::{PSP34Data, PSP34Error, PSP34Event, PSP34, PSP34Mintable, PSP34Burnable, Id, PSP34Enumerable, PSP34Metadata};
     use ink::prelude::{string::String, vec::Vec};
 
     #[ink(storage)]
@@ -164,6 +164,17 @@ mod token {
         }
     }
 
+    impl PSP34Burnable for Token {
+        #[ink(message)]
+        fn burn(&mut self, account: AccountId, id: Id) -> Result<(), PSP34Error> {
+            let events = self
+                .data
+                .burn(account, id)?;
+            self.emit_events(events);
+            Ok(())
+        }
+    }
+
     impl PSP34Metadata for Token {
         #[ink(message)]
         fn get_attribute(&self, id: Id, key:Vec<u8>) -> Option<Vec<u8>> {
@@ -175,6 +186,11 @@ mod token {
         #[ink(message)]
         fn token_by_index(&self, index: u128) -> Option<Id> {
             self.data.token_by_index(index)
+        }
+
+        #[ink(message)]
+        fn owners_token_by_index(&self, owner: AccountId, index: u128) -> Option<Id> {
+            self.data.owners_token_by_index(owner, index)
         }
     }
 
