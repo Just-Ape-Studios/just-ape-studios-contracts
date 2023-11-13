@@ -82,3 +82,5 @@ The `PSP34Data` class can be used to extend your contract with PSP34 token logic
    `u32`, which could end up causin' an integer overflow if the same
    owner has a biiig chunk of the supply. So just be aware of that <3
 2. If you require custom features, such as charge per mint, allow-list based mints, validate contract owner permissions, and so on; you must implement these features.
+
+3. The mint and burn methods need to be restricted based on your business logic. Consider only-owner modifiers to restrict minting to a given account (as well as burning), or add payable methods for mint and lots more.
