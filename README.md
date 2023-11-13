@@ -1,4 +1,20 @@
-# PSP34 Token
+## Summary
+**These smart contracts were written in plain ink!.**
+
+Why use these smart contracts?
+- Smart contracts undergo rounds of security audits
+- Standards can help simplify development
+
+Token Standards available:
+- **PSP34** - Non-Fungible Token (*ERC721 equivalent*) with extensions
+
+### PSP-34 Non-Fungible Token Standard in Plain ink!
+* PSP-34 OpenBrush Implementation [OpenBrush](https://github.com/Brushfam/openbrush-contracts/tree/main/contracts/src/token/psp34)
+
+This compliant implementation of the PSP34
+community standard [1] is mostly inspired by the work
+of openbrush team [2]. This implementation is similar to the [EIP-721](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md) for the Ethereum.
+
 Repo stores an example of a compliant implementation of the PSP34
 community standard [1] in plain ink. This is mostly inspired by the work
 of openbrush team [2] and the focus was to remove the dependency on
@@ -65,7 +81,4 @@ The `PSP34Data` class can be used to extend your contract with PSP34 token logic
    don't account for that, e.g. `balance_of` is set to return an
    `u32`, which could end up causin' an integer overflow if the same
    owner has a biiig chunk of the supply. So just be aware of that <3
-2. No built-in extra stuff. If you wanna go custom, like charge for
-   each mint, mint based on an allow-list, check only the contract
-   owner can call transfer, and so on; you gotta do it yourself... or
-   send a gig my way.
+2. If you require custom features, such as charge per mint, allow-list based mints, validate contract owner permissions, and so on; you must implement these features.
