@@ -3,7 +3,10 @@ use ink::prelude::vec::Vec;
 
 /// Id is an Enum of its variants and types
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, scale::Encode, scale::Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout))]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+)]
 pub enum Id {
     U8(u8),
     U16(u16),
