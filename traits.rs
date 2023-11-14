@@ -81,6 +81,10 @@ pub trait PSP34Mintable {
     /// Mints a new token to collection.
     #[ink(message)]
     fn mint(&mut self, account: AccountId) -> Result<(), PSP34Error>;
+
+    /// Mints a new token to with attributes.
+    #[ink(message)]
+    fn mint_with_attribute(&mut self, account: AccountId, key: Vec<u8>, value: Vec<u8>) -> Result<(), PSP34Error>;
 }
 
 #[ink::trait_definition]
