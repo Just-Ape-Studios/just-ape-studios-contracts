@@ -2,7 +2,7 @@
 **These smart contracts were written in plain ink!.**
 
 Why use these smart contracts?
-- Smart contracts undergo rounds of security audits
+- Smart contracts WILL undergo rounds of security audits 
 - Standards can help simplify development
 
 Token Standards available:
