@@ -1,6 +1,5 @@
 use crate::PSP34Error;
 
-use ink::prelude::string::String;
 use ink::{
     prelude::{vec, vec::Vec},
     primitives::AccountId,
@@ -35,23 +34,48 @@ pub enum PSP34Event {
 #[ink::storage_item]
 #[derive(Debug, Default)]
 pub struct PSP34Data {
+    /// Mapping of a token to its owner
     pub tokens_owner: Mapping<Id, AccountId>,
+
+    /// Mapping of an owner to the amount of tokens they have
     pub tokens_per_owner: Mapping<AccountId, u32>,
+
+    /// Mapping of approved operators for specific tokens
     pub allowances: Mapping<(AccountId, AccountId, Id), bool>,
+
+    /// Mapping of approved operators for all the tokens
     pub allowances_all: Mapping<(AccountId, AccountId), bool>,
+
+    /// Total supply of the collection
     pub total_supply: Balance,
+
+    /// Maximum supply of the collection
     pub max_supply: Balance,
+
+    /// Mapping of the attributes of each token
+    /// The Vec<u8> in the key represents the identifier of the
+    /// attribute while the other one represents its value
     pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>,
 
+    /// TODO document what this represents
+    /// consider if we should use Lazy<Vec<u128>>, if the vector
+    /// can grow too long or if the users can ddos it
     pub all_tokens: Vec<u128>,
+
+    /// TODO document what this represents
     pub all_tokens_index: Mapping<Id, Balance>,
 
+    /// TODO document what this represents
     pub owned_tokens: Mapping<(AccountId, Balance), Id>,
+
+    /// TODO document what this represents
     pub owned_tokens_index: Mapping<Id, Balance>,
 }
 
-//Internal methods here
+// Internal methods here
 impl PSP34Data {
+    /// Verifies if an account is either the owner of the token or is in the
+    /// list of allowed operators
     fn owner_or_approved(&self, account: AccountId, token: Id) -> bool {
         let owner = self.owner_of(token.clone());
 
@@ -66,6 +90,7 @@ impl PSP34Data {
         }
     }
 
+    /// Removes a token from the list of existing tokens
     fn remove_token(&mut self, token: Id) -> Result<(), PSP34Error> {
         if !self.exists(token.clone()) {
             return Err(PSP34Error::SafeTransferCheckFailed(
@@ -73,12 +98,13 @@ impl PSP34Data {
             ));
         }
 
-        let last_token_index: u128 = (self.all_tokens.len() - 1).try_into().unwrap();
+        let last_token_index = (self.all_tokens.len() - 1) as u128;
         let token_index = self.all_tokens_index.get(token.clone()).unwrap();
 
-        // When the token to delete is the last token, the swap operation is unnecessary. However, since this occurs so
-        // rarely (when the last minted token is burnt) that we still do the swap here to avoid the gas cost of adding
-        // an 'if' statement (like in remove_token_from)
+        // When the token to delete is the last token, the swap operation is
+        // unnecessary. However, since this occurs so rarely (when the last
+        // minted token is burnt) that we still do the swap here to avoid the
+        // gas cost of adding an 'if' statement (like in remove_token_from)
 
         let last_token_id = Id::U128(self.all_tokens[usize::try_from(last_token_index).unwrap()]);
 
@@ -94,8 +120,9 @@ impl PSP34Data {
         Ok(())
     }
 
+    /// Adds a token to the list of existing tokens
     fn add_token(&mut self, token: Id) -> Result<(), PSP34Error> {
-        let length: u128 = self.all_tokens.len().try_into().unwrap();
+        let length = self.all_tokens.len() as u128;
         self.all_tokens_index.insert(token.clone(), &length);
         self.all_tokens.push(u128::from(token));
         Ok(())
@@ -110,13 +137,13 @@ impl PSP34Data {
         }
 
         let count = self.tokens_per_owner.get(&account).map(|t| t - 1).ok_or(
-            PSP34Error::SafeTransferCheckFailed("token should exist".into()),
+            PSP34Error::SafeTransferCheckFailed("account should exist".into()),
         )?;
 
         self.tokens_per_owner.insert(account, &count);
         self.tokens_owner.remove(&token.clone());
 
-        let last_token_index: u128 = self.balance_of(account).try_into().unwrap();
+        let last_token_index = self.balance_of(account) as u128;
         let token_index: u128 = self.owned_tokens_index.get(token.clone()).unwrap();
 
         if token_index != last_token_index {
@@ -124,6 +151,7 @@ impl PSP34Data {
 
             self.owned_tokens
                 .insert((account, token_index), &last_token_id.clone());
+
             self.owned_tokens_index.insert(last_token_id, &token_index);
         }
 
@@ -148,10 +176,9 @@ impl PSP34Data {
         }
 
         self.inc_qty_owner_tokens(account);
-
         self.tokens_owner.insert(token.clone(), &account);
 
-        let length: u128 = (self.balance_of(account) - 1).try_into().unwrap();
+        let length = (self.balance_of(account) - 1) as u128;
         self.owned_tokens.insert((account, length), &token.clone());
         self.owned_tokens_index.insert(token.clone(), &length);
 
@@ -192,7 +219,7 @@ impl PSP34Data {
     }
 }
 
-//External methods here
+// External methods here
 impl PSP34Data {
     // Creates a token with `max supply` set.
     pub fn new(max_supply: Balance) -> PSP34Data {
@@ -232,10 +259,9 @@ impl PSP34Data {
     /// Returns `true` if the operator is approved by the owner to
     /// withdraw `id` token.  If `id` is `None`, returns `true` if
     /// the operator is approved to withdraw all owner's tokens.
-
     pub fn allowance(&self, owner: AccountId, operator: AccountId, id: Option<Id>) -> bool {
         match id {
-            Some(ref index) => self.is_allowed_single(owner, operator, id.unwrap()),
+            Some(token) => self.is_allowed_single(owner, operator, token),
             None => self.is_allowed_all(owner, operator),
         }
     }
@@ -318,13 +344,7 @@ impl PSP34Data {
         id: Id,
         _data: Vec<u8>,
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
-        self.transfer_from(from, to, id.clone(), _data)?;
-
-        Ok(vec![PSP34Event::Transfer {
-            from: Some(from),
-            to: Some(to),
-            id,
-        }])
+        Ok(self.transfer_from(from, to, id.clone(), _data)?)
     }
 
     pub fn transfer_from(
@@ -379,6 +399,19 @@ impl PSP34Data {
     }
 
     pub fn mint(&mut self, account: AccountId) -> Result<Vec<PSP34Event>, PSP34Error> {
+        // TODO I see that here and in a bunch of other places we are defaulting
+        // to using the Id::U128 variant.
+        //
+        // I don't like Id being an enum but it's part of the current standard,
+        // so I feel like we should allow all variants, in order to be fully compliant.
+        //
+        // Would it be possible for `id` to be a parameter passed to the function,
+        // and move the logic of increasing the id to the PSP34Mintable message,
+        // would that work? would it be better? Imo at least it would allow the client
+        // to overwrite it with their needs, and keep the internals variant-free.
+        //
+        // If any change is made, we need to verify this in all the places that
+        // call Id::U128 directly
         let id = Id::U128(self.total_supply() + 1);
 
         if self.total_supply == self.max_supply {
@@ -416,6 +449,12 @@ impl PSP34Data {
         }])
     }
 
+    // TODO
+    // handy function, I like it!
+    // tho I feel like the attributes signature should be more like:
+    // attributes: Vec<(Vec<u8>, Vec<u8>)>
+    // as a way to set multiple attributes, instead of just one
+    // smth to consider
     pub fn mint_with_attribute(
         &mut self,
         account: AccountId,

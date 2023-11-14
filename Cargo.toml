@@ -2,7 +2,11 @@
 name = "psp34"
 version = "0.2.1"
 edition = "2021"
-authors = ["Edinyanga Ottoho", "Just Apes"]
+authors = [
+  "Edinyanga Ottoho",
+  "netfox <say-hi@netfox.rip>",
+  "Just Apes <>"
+]
 homepage = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contracts"
 repository = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contracts"
 license = "Apache-2.0"

@@ -5,21 +5,18 @@ mod errors;
 mod traits;
 mod types;
 
-use ink::prelude::{vec, vec::Vec};
-
 pub use crate::types::Id;
 pub use data::{PSP34Data, PSP34Event};
 pub use errors::PSP34Error;
 pub use traits::{PSP34Burnable, PSP34Enumerable, PSP34Metadata, PSP34Mintable, PSP34};
 
 #[ink::contract]
-
 mod token {
     use crate::{
         Id, PSP34Burnable, PSP34Data, PSP34Enumerable, PSP34Error, PSP34Event, PSP34Metadata,
         PSP34Mintable, PSP34,
     };
-    use ink::prelude::{string::String, vec::Vec};
+    use ink::prelude::vec::Vec;
 
     #[ink(storage)]
     pub struct Token {
