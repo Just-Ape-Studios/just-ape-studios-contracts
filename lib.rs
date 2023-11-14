@@ -10,6 +10,7 @@ pub use data::{PSP34Data, PSP34Event};
 pub use errors::PSP34Error;
 pub use traits::{PSP34Burnable, PSP34Enumerable, PSP34Metadata, PSP34Mintable, PSP34};
 
+#[cfg(feature = "contract")]
 #[ink::contract]
 mod token {
     use crate::{
