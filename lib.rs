@@ -154,6 +154,7 @@ mod token {
             Ok(())
         }
 
+        #[ink(message)]
         fn mint_with_attribute(&mut self, account: AccountId, key:Vec<u8>, value: Vec<u8>) -> Result<(), PSP34Error> {
             let events = self.data.mint(account, key, value)?;
             self.emit_events(events);
