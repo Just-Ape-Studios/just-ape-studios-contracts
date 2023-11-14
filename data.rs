@@ -57,18 +57,20 @@ pub struct PSP34Data {
     /// attribute while the other one represents its value
     pub attributes: Mapping<(Id, Vec<u8>), Vec<u8>>,
 
-    /// TODO document what this represents
-    /// consider if we should use Lazy<Vec<u128>>, if the vector
-    /// can grow too long or if the users can ddos it
+    /// Stores the token 'id's for all tokens in the collection
+    /// Helps with enumerable trait to get 'id' at indexes: token_by_index
     pub all_tokens: Vec<u128>,
 
-    /// TODO document what this represents
+    /// Maps the index of 'id's for all tokens to their index in the collection
+    /// Helps with enumerable trait to get 'id' at indexes: token_by_index
     pub all_tokens_index: Mapping<Id, Balance>,
 
-    /// TODO document what this represents
+    /// Maps the indexes of 'id's for associated accounts.
+    /// Helps with enumerable trait to get 'id' at indexes of accounts: owners_token_by_index
     pub owned_tokens: Mapping<(AccountId, Balance), Id>,
 
-    /// TODO document what this represents
+    /// Maps the 'id's of tokens to associated accounts (specific for index of 'id' for given account)
+    /// Helps with enumerable trait to get 'id' at indexes of accounts: owners_token_by_index
     pub owned_tokens_index: Mapping<Id, Balance>,
 }
 
@@ -399,19 +401,7 @@ impl PSP34Data {
     }
 
     pub fn mint(&mut self, account: AccountId) -> Result<Vec<PSP34Event>, PSP34Error> {
-        // TODO I see that here and in a bunch of other places we are defaulting
-        // to using the Id::U128 variant.
-        //
-        // I don't like Id being an enum but it's part of the current standard,
-        // so I feel like we should allow all variants, in order to be fully compliant.
-        //
-        // Would it be possible for `id` to be a parameter passed to the function,
-        // and move the logic of increasing the id to the PSP34Mintable message,
-        // would that work? would it be better? Imo at least it would allow the client
-        // to overwrite it with their needs, and keep the internals variant-free.
-        //
-        // If any change is made, we need to verify this in all the places that
-        // call Id::U128 directly
+        
         let id = Id::U128(self.total_supply() + 1);
 
         if self.total_supply == self.max_supply {
@@ -449,17 +439,13 @@ impl PSP34Data {
         }])
     }
 
-    // TODO
-    // handy function, I like it!
-    // tho I feel like the attributes signature should be more like:
+    // Mint a token of 'id' with attributes set:
     // attributes: Vec<(Vec<u8>, Vec<u8>)>
-    // as a way to set multiple attributes, instead of just one
-    // smth to consider
-    pub fn mint_with_attribute(
+    
+    pub fn mint_with_attributes(
         &mut self,
         account: AccountId,
-        key: Vec<u8>,
-        value: Vec<u8>,
+        attributes: Vec<(Vec<u8>, Vec<u8>)>
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
         let id = Id::U128(self.total_supply() + 1);
 
@@ -473,18 +459,16 @@ impl PSP34Data {
 
         self.add_token_to(account, id.clone())?;
 
-        self.attributes.insert((id.clone(), key.clone()), &value);
+        for i in 0..attributes.len() {
+            let (key, value) = &attributes[i];
+            self.attributes.insert((id.clone(), key.clone()), value);
+        }
 
         Ok(vec![
             PSP34Event::Transfer {
                 from: None,
                 to: Some(account),
                 id: id.clone(),
-            },
-            PSP34Event::AttributeSet {
-                id: id.clone(),
-                key: key.clone(),
-                data: value,
             },
         ])
     }
