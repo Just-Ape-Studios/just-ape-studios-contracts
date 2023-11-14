@@ -1,7 +1,4 @@
-use ink::{
-    prelude::{string::String, vec::Vec},
-    primitives::AccountId,
-};
+use ink::{prelude::vec::Vec, primitives::AccountId};
 
 use crate::PSP34Error;
 
