@@ -3,7 +3,7 @@
 mod data;
 mod errors;
 mod traits;
-mod types;
+pub mod types;
 
 pub use crate::types::Id;
 pub use data::{PSP34Data, PSP34Event};
