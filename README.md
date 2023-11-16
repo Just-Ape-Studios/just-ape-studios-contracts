@@ -9,19 +9,10 @@ Token Standards available:
 - **PSP34** - Non-Fungible Token (*ERC721 equivalent*) with extensions
 
 ### PSP-34 Non-Fungible Token Standard in Plain ink!
-* PSP-34 OpenBrush Implementation [OpenBrush](https://github.com/Brushfam/openbrush-contracts/tree/main/contracts/src/token/psp34)
-
-This compliant implementation of the PSP34
-community standard [1] is mostly inspired by the work
-of openbrush team [2]. This implementation is similar to the [EIP-721](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md) for the Ethereum.
-
-Shout-out to
-the paritytech peeps too for their amazing up-to-date examples
-repository. [3]
+This is our implementation of the PSP34 community standard [1] in plain ink!, greatly inspired by Cardinal's PSP22 implementation [2]. 
 
 - [1] https://github.com/w3f/PSPs/blob/master/PSPs/psp-34.md
-- [2] https://github.com/Brushfam/openbrush-contracts
-- [3] https://github.com/paritytech/ink-examples/
+- [2] https://github.com/Cardinal-Cryptography/PSP22
 
 ## How to use this repository
 
