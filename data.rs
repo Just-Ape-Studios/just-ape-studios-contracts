@@ -263,7 +263,7 @@ impl PSP34Data {
     /// the operator is approved to withdraw all owner's tokens.
     pub fn allowance(&self, owner: AccountId, operator: AccountId, id: Option<Id>) -> bool {
         match id {
-            Some(token) => self.is_allowed_single(owner, operator, token),
+            Some(token) => self.is_allowed_single(owner, operator, token) || self.is_allowed_all(owner, operator),
             None => self.is_allowed_all(owner, operator),
         }
     }
