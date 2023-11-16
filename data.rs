@@ -63,15 +63,15 @@ pub struct PSP34Data {
 
     /// Maps the index of 'id's for all tokens to their index in the collection
     /// Helps with enumerable trait to get 'id' at indexes: token_by_index
-    pub all_tokens_index: Mapping<Id, Balance>,
+    pub all_tokens_index: Mapping<Id, u128>,
 
     /// Maps the indexes of 'id's for associated accounts.
     /// Helps with enumerable trait to get 'id' at indexes of accounts: owners_token_by_index
-    pub owned_tokens: Mapping<(AccountId, Balance), Id>,
+    pub owned_tokens: Mapping<(AccountId, u128), Id>,
 
     /// Maps the 'id's of tokens to associated accounts (specific for index of 'id' for given account)
     /// Helps with enumerable trait to get 'id' at indexes of accounts: owners_token_by_index
-    pub owned_tokens_index: Mapping<Id, Balance>,
+    pub owned_tokens_index: Mapping<Id, u128>,
 }
 
 // Internal methods here
