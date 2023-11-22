@@ -1,19 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
-mod data;
-mod errors;
-mod traits;
-pub mod types;
-
-pub use crate::types::Id;
-pub use data::{PSP34Data, PSP34Event};
-pub use errors::PSP34Error;
-pub use traits::{PSP34Burnable, PSP34Enumerable, PSP34Metadata, PSP34Mintable, PSP34};
-
 #[cfg(feature = "contract")]
 #[ink::contract]
 mod token {
-    use crate::{
+    use psp34::{
         Id, PSP34Burnable, PSP34Data, PSP34Enumerable, PSP34Error, PSP34Event, PSP34Metadata,
         PSP34Mintable, PSP34,
     };

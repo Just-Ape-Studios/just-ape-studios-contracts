@@ -1,0 +1,37 @@
+[package]
+name = "psp34"
+version = "0.2.1"
+edition = "2021"
+authors = [
+  "Edinyanga Ottoho",
+  "netfox <say-hi@netfox.rip>",
+  "Just Apes <>"
+]
+homepage = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contracts"
+repository = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contracts"
+license = "Apache-2.0"
+readme = "README.md"
+description = "Minimal implementation of PSP34 token standard in pure ink!"
+exclude = [ ".github/*" ]
+
+[dependencies]
+ink = { version = "4.3.0", default-features = false }
+
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.9", default-features = false, features = ["derive"], optional = true }
+
+psp34 = { git = "https://github.com/just-ape-studios/just-ape-studios-contracts.git", default-features = false }
+
+[lib]
+path = "lib.rs"
+
+[features]
+default = ["std"]
+contract = []
+std = [
+    "ink/std",
+    "scale/std",
+    "scale-info/std",
+    "psp34/std"
+]
+ink-as-dependency = []
