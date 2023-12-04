@@ -1,18 +1,11 @@
 [package]
-name = "psp34"
+name = "psp34_example"
 version = "0.2.1"
-edition = "2021"
 authors = [
-  "Edinyanga Ottoho",
+  "Edinyanga Ottoho <elzucky@gmail.com>",
   "netfox <say-hi@netfox.rip>",
   "Just Apes <>"
 ]
-homepage = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contracts"
-repository = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contracts"
-license = "Apache-2.0"
-readme = "README.md"
-description = "Minimal implementation of PSP34 token standard in pure ink!"
-exclude = [ ".github/*" ]
 
 [dependencies]
 ink = { version = "4.3.0", default-features = false }
