@@ -6,6 +6,7 @@ authors = [
   "netfox <say-hi@netfox.rip>",
   "Just Apes <>"
 ]
+edition = "2021"
 
 [dependencies]
 ink = { version = "4.3.0", default-features = false }

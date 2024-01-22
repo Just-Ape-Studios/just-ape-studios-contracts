@@ -12,7 +12,8 @@ repository = "https://github.com/Just-Ape-Studios-Admin/just-ape-studios-contrac
 license = "Apache-2.0"
 readme = "README.md"
 description = "Minimal implementation of PSP34 token standard in pure ink!"
-exclude = [ ".github/*" ]
+
+exclude = [ "examples/" ]
 
 [dependencies]
 ink = { version = "4.3.0", default-features = false }
