@@ -263,7 +263,10 @@ impl PSP34Data {
     /// the operator is approved to withdraw all owner's tokens.
     pub fn allowance(&self, owner: AccountId, operator: AccountId, id: Option<Id>) -> bool {
         match id {
-            Some(token) => self.is_allowed_single(owner, operator, token) || self.is_allowed_all(owner, operator),
+            Some(token) => {
+                self.is_allowed_single(owner, operator, token)
+                    || self.is_allowed_all(owner, operator)
+            }
             None => self.is_allowed_all(owner, operator),
         }
     }
@@ -401,24 +404,7 @@ impl PSP34Data {
     }
 
     pub fn mint(&mut self, account: AccountId) -> Result<Vec<PSP34Event>, PSP34Error> {
-        
-        let id = Id::U128(self.total_supply() + 1);
-
-        if self.total_supply == self.max_supply {
-            return Err(PSP34Error::ReachedMaxSupply);
-        }
-
-        self.total_supply += 1;
-
-        self.add_token(id.clone())?;
-
-        self.add_token_to(account, id.clone())?;
-
-        Ok(vec![PSP34Event::Transfer {
-            from: None,
-            to: Some(account),
-            id,
-        }])
+        self.mint_with_attributes(account, vec![])
     }
 
     pub fn burn(&mut self, account: AccountId, id: Id) -> Result<Vec<PSP34Event>, PSP34Error> {
@@ -441,15 +427,17 @@ impl PSP34Data {
 
     // Mint a token of 'id' with attributes set:
     // attributes: Vec<(Vec<u8>, Vec<u8>)>
-    
+
     pub fn mint_with_attributes(
         &mut self,
         account: AccountId,
-        attributes: Vec<(Vec<u8>, Vec<u8>)>
+        attributes: Vec<(Vec<u8>, Vec<u8>)>,
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
-        let id = Id::U128(self.total_supply() + 1);
+        let id = Id::U128(self.total_supply());
 
-        if self.total_supply == self.max_supply {
+        // + 1 to account for the fact that max_supply starts at 1
+        // but id starts at 0
+        if self.total_supply + 1 == self.max_supply {
             return Err(PSP34Error::ReachedMaxSupply);
         }
 
@@ -464,12 +452,10 @@ impl PSP34Data {
             self.attributes.insert((id.clone(), key.clone()), value);
         }
 
-        Ok(vec![
-            PSP34Event::Transfer {
-                from: None,
-                to: Some(account),
-                id: id.clone(),
-            },
-        ])
+        Ok(vec![PSP34Event::Transfer {
+            from: None,
+            to: Some(account),
+            id: id.clone(),
+        }])
     }
 }
