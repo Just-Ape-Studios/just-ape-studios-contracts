@@ -71,9 +71,6 @@ pub trait PSP34 {
     /// Returns the current total supply of the NFT.
     #[ink(message)]
     fn total_supply(&self) -> Balance;
-
-    #[ink(message)]
-    fn max_supply(&self) -> Balance;
 }
 
 #[ink::trait_definition]

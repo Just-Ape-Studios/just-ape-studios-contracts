@@ -49,9 +49,6 @@ pub struct PSP34Data {
     /// Total supply of the collection
     pub total_supply: Balance,
 
-    /// Maximum supply of the collection
-    pub max_supply: Balance,
-
     /// Mapping of the attributes of each token
     /// The Vec<u8> in the key represents the identifier of the
     /// attribute while the other one represents its value
@@ -223,15 +220,13 @@ impl PSP34Data {
 
 // External methods here
 impl PSP34Data {
-    // Creates a token with `max supply` set.
-    pub fn new(max_supply: Balance) -> PSP34Data {
+    pub fn new() -> PSP34Data {
         let data = PSP34Data {
             tokens_owner: Default::default(),
             tokens_per_owner: Default::default(),
             allowances: Default::default(),
             attributes: Default::default(),
             total_supply: 0,
-            max_supply,
             all_tokens: vec![],
             all_tokens_index: Default::default(),
             owned_tokens: Default::default(),
@@ -244,10 +239,6 @@ impl PSP34Data {
 
     pub fn total_supply(&self) -> Balance {
         Balance::from(self.total_supply)
-    }
-
-    pub fn max_supply(&self) -> Balance {
-        Balance::from(self.max_supply)
     }
 
     pub fn balance_of(&self, owner: AccountId) -> u32 {
@@ -434,12 +425,6 @@ impl PSP34Data {
         attributes: Vec<(Vec<u8>, Vec<u8>)>,
     ) -> Result<Vec<PSP34Event>, PSP34Error> {
         let id = Id::U128(self.total_supply());
-
-        // + 1 to account for the fact that max_supply starts at 1
-        // but id starts at 0
-        if self.total_supply + 1 == self.max_supply {
-            return Err(PSP34Error::ReachedMaxSupply);
-        }
 
         self.total_supply += 1;
 

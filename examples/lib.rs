@@ -16,9 +16,9 @@ mod token {
 
     impl Token {
         #[ink(constructor)]
-        pub fn new(max_supply: Balance) -> Self {
+        pub fn new() -> Self {
             Self {
-                data: PSP34Data::new(max_supply),
+                data: PSP34Data::new(),
             }
         }
 
@@ -129,11 +129,6 @@ mod token {
         #[ink(message)]
         fn total_supply(&self) -> Balance {
             self.data.total_supply()
-        }
-
-        #[ink(message)]
-        fn max_supply(&self) -> Balance {
-            self.data.max_supply()
         }
     }
 
