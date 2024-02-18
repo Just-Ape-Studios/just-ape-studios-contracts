@@ -156,12 +156,15 @@ mod token {
         }
 
         #[ink(message)]
-        fn mint_with_attributes(&mut self, account: AccountId, attributes: Vec<(Vec<u8>, Vec<u8>)>) -> Result<(), PSP34Error> {
+        fn mint_with_attributes(
+            &mut self,
+            account: AccountId,
+            attributes: Vec<(Vec<u8>, Vec<u8>)>,
+        ) -> Result<(), PSP34Error> {
             let events = self.data.mint_with_attributes(account, attributes)?;
             self.emit_events(events);
             Ok(())
         }
-
     }
 
     impl PSP34Burnable for Token {
